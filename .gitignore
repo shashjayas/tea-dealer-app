@@ -1,0 +1,9 @@
+# General
+.DS_Store
+Thumbs.db
+.env
+.env.local
+
+# IDEs
+.vscode/
+.idea/
