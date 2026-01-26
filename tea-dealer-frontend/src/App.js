@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Leaf, Users, DollarSign, TrendingUp, Package, MinusCircle, Eye, Menu, X, Plus, Edit, Trash2, Search, Save, XCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Leaf, Users, DollarSign, TrendingUp, Package, MinusCircle, Eye, Menu, X, Plus, Edit, Trash2, Search, Save, XCircle, ArrowUpDown, ArrowUp, ArrowDown, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 
 const LoginPage = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -76,6 +76,340 @@ const LoginPage = ({ onLogin }) => {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
             <div className="text-center text-sm text-gray-500">Default credentials: admin / admin123</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CollectionRecording = () => {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customers, setCustomers] = useState([]);
+  const [collections, setCollections] = useState({});
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [saving, setSaving] = useState({});
+  const [quickAddForm, setQuickAddForm] = useState({
+    customerId: '',
+    collectionDate: new Date().toISOString().split('T')[0],
+    weightKg: '',
+    notes: ''
+  });
+
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  useEffect(() => {
+    fetchCollections();
+  }, [selectedDate]);
+
+  const fetchCustomers = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/customers');
+      const data = await response.json();
+      setCustomers(data);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
+  const fetchCollections = async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/collections/date/${selectedDate}`);
+      const data = await response.json();
+      const collectionsMap = {};
+      data.forEach(col => {
+        collectionsMap[col.customer.id] = {
+          id: col.id,
+          weightKg: col.weightKg,
+          notes: col.notes
+        };
+      });
+      setCollections(collectionsMap);
+    } catch (error) {
+      console.error('Error fetching collections:', error);
+      setCollections({});
+    }
+  };
+
+  const handleWeightChange = async (customerId, weight) => {
+    if (weight === '' || weight === '0') {
+      const collection = collections[customerId];
+      if (collection && collection.id) {
+        try {
+          await fetch(`http://localhost:8080/api/collections/${collection.id}`, {
+            method: 'DELETE'
+          });
+          setCollections(prev => {
+            const updated = { ...prev };
+            delete updated[customerId];
+            return updated;
+          });
+        } catch (error) {
+          console.error('Error deleting collection:', error);
+        }
+      }
+      return;
+    }
+
+    const weightValue = parseFloat(weight);
+    if (isNaN(weightValue) || weightValue < 0) return;
+
+    setSaving(prev => ({ ...prev, [customerId]: true }));
+
+    try {
+      const response = await fetch('http://localhost:8080/api/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: customerId,
+          collectionDate: selectedDate,
+          weightKg: weightValue,
+          ratePerKg: 0
+        })
+      });
+
+      if (response.ok) {
+        const saved = await response.json();
+        setCollections(prev => ({
+          ...prev,
+          [customerId]: {
+            id: saved.id,
+            weightKg: saved.weightKg,
+            notes: saved.notes
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error saving collection:', error);
+    } finally {
+      setSaving(prev => ({ ...prev, [customerId]: false }));
+    }
+  };
+
+  const handleQuickAdd = async () => {
+    if (!quickAddForm.customerId || !quickAddForm.weightKg) {
+      alert('Please select customer and enter weight');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...quickAddForm,
+          ratePerKg: 0
+        })
+      });
+
+      if (response.ok) {
+        setShowQuickAdd(false);
+        setQuickAddForm({
+          customerId: '',
+          collectionDate: new Date().toISOString().split('T')[0],
+          weightKg: '',
+          notes: ''
+        });
+        if (quickAddForm.collectionDate === selectedDate) {
+          fetchCollections();
+        }
+      }
+    } catch (error) {
+      console.error('Error adding collection:', error);
+    }
+  };
+
+  const getTodayTotal = () => {
+    return Object.values(collections).reduce((sum, col) => sum + parseFloat(col.weightKg || 0), 0).toFixed(2);
+  };
+
+  const getCollectedCount = () => {
+    return Object.keys(collections).length;
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Daily Collection Sheet</h2>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowQuickAdd(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            Quick Add
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-4">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-8 h-8 text-green-600" />
+            <div>
+              <p className="text-sm text-gray-600">Selected Date</p>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="text-lg font-bold text-gray-800 border-0 outline-none cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm opacity-90">Total Collection</p>
+              <p className="text-2xl font-bold">{getTodayTotal()} kg</p>
+            </div>
+            <Package className="w-10 h-10 opacity-80" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl shadow-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm opacity-90">Customers Collected</p>
+              <p className="text-2xl font-bold">{getCollectedCount()} / {customers.length}</p>
+            </div>
+            <Users className="w-10 h-10 opacity-80" />
+          </div>
+        </div>
+      </div>
+
+      {showQuickAdd && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white flex justify-between items-center">
+              <h3 className="text-xl font-bold">Quick Add Collection</h3>
+              <button onClick={() => setShowQuickAdd(false)} className="hover:bg-white/20 p-2 rounded-lg">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Customer *</label>
+                <select
+                  value={quickAddForm.customerId}
+                  onChange={(e) => setQuickAddForm({ ...quickAddForm, customerId: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="">Select Customer</option>
+                  {customers.map(customer => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.bookNumber} - {customer.growerNameEnglish}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                <input
+                  type="date"
+                  value={quickAddForm.collectionDate}
+                  onChange={(e) => setQuickAddForm({ ...quickAddForm, collectionDate: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Weight (kg) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={quickAddForm.weightKg}
+                  onChange={(e) => setQuickAddForm({ ...quickAddForm, weightKg: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                <textarea
+                  value={quickAddForm.notes}
+                  onChange={(e) => setQuickAddForm({ ...quickAddForm, notes: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  rows="2"
+                />
+              </div>
+              <button
+                onClick={handleQuickAdd}
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-cyan-700"
+              >
+                Save Collection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 grid grid-cols-5 gap-4 font-semibold text-sm">
+          <div className="col-span-2">Customer</div>
+          <div>Book No.</div>
+          <div>Route</div>
+          <div>Weight (kg)</div>
+        </div>
+        <div className="divide-y max-h-[500px] overflow-y-auto">
+          {customers.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">No customers found</div>
+          ) : (
+            customers.map((customer) => {
+              const collection = collections[customer.id];
+              const hasCollection = !!collection;
+              
+              return (
+                <div key={customer.id} className={`grid grid-cols-5 gap-4 p-4 items-center text-sm ${hasCollection ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
+                  <div className="col-span-2 flex items-center gap-2">
+                    {hasCollection ? (
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-gray-300" />
+                    )}
+                    <div>
+                      <p className="font-medium text-gray-900">{customer.growerNameEnglish}</p>
+                      <p className="text-xs text-gray-500">{customer.growerNameSinhala}</p>
+                    </div>
+                  </div>
+                  <div className="text-gray-700">{customer.bookNumber}</div>
+                  <div>
+                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                      {customer.route}
+                    </span>
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={collection?.weightKg || ''}
+                      onChange={(e) => handleWeightChange(customer.id, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                      placeholder="0.00"
+                    />
+                    {saving[customer.id] && (
+                      <span className="text-xs text-blue-600">Saving...</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-lg flex justify-between items-center">
+        <span className="text-lg font-bold">Daily Summary</span>
+        <div className="flex gap-8">
+          <div>
+            <span className="text-sm opacity-90">Total Weight: </span>
+            <span className="text-xl font-bold">{getTodayTotal()} kg</span>
+          </div>
+          <div>
+            <span className="text-sm opacity-90">Customers Collected: </span>
+            <span className="text-xl font-bold">{getCollectedCount()}</span>
           </div>
         </div>
       </div>
@@ -306,11 +640,33 @@ const CustomerManagement = () => {
 };
 
 const DashboardHome = ({ totalCustomers }) => {
+  const [todayCollection, setTodayCollection] = useState({ weight: 0, count: 0 });
+
+  useEffect(() => {
+    const fetchTodayCollection = async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const response = await fetch(`http://localhost:8080/api/collections/date/${today}`);
+        const data = await response.json();
+        
+        const totalWeight = data.reduce((sum, col) => sum + parseFloat(col.weightKg || 0), 0);
+        
+        setTodayCollection({
+          weight: totalWeight.toFixed(2),
+          count: data.length
+        });
+      } catch (error) {
+        console.error('Error fetching today collection:', error);
+      }
+    };
+    fetchTodayCollection();
+  }, []);
+
   const stats = [
     { label: 'Total Customers', value: totalCustomers, icon: Users, color: 'from-green-500 to-emerald-500' },
-    { label: "Today's Collection", value: '245 kg', icon: Package, color: 'from-teal-500 to-cyan-500' },
-    { label: 'Monthly Revenue', value: 'Rs. 450,000', icon: DollarSign, color: 'from-emerald-500 to-green-500' },
-    { label: 'Average Rate', value: 'Rs. 185/kg', icon: TrendingUp, color: 'from-green-600 to-teal-600' },
+    { label: "Today's Collection", value: `${todayCollection.weight} kg`, icon: Package, color: 'from-teal-500 to-cyan-500' },
+    { label: 'Collected Today', value: `${todayCollection.count} customers`, icon: CheckCircle, color: 'from-emerald-500 to-green-500' },
+    { label: 'Pending Collection', value: `${totalCustomers - todayCollection.count} customers`, icon: AlertCircle, color: 'from-orange-500 to-amber-500' },
   ];
 
   return (
@@ -378,9 +734,10 @@ const Dashboard = ({ user, onLogout }) => {
   const menuItems = [
     { label: 'Dashboard', icon: TrendingUp, page: 'dashboard' },
     { label: 'Manage Customers', icon: Users, page: 'customers' },
+    { label: 'Daily Collection', icon: Package, page: 'collections' },
     { label: 'Manage Rates', icon: DollarSign, page: 'rates' },
     { label: 'Add Deductions', icon: MinusCircle, page: 'deductions' },
-    { label: 'View Collection', icon: Eye, page: 'collections' },
+    { label: 'View Reports', icon: Eye, page: 'reports' },
   ];
 
   return (
@@ -415,7 +772,10 @@ const Dashboard = ({ user, onLogout }) => {
                 {sidebarOpen ? <X /> : <Menu />}
               </button>
               <h1 className="text-2xl font-bold text-gray-800">
-                {currentPage === 'dashboard' ? 'Dashboard' : currentPage === 'customers' ? 'Customer Management' : 'Coming Soon'}
+                {currentPage === 'dashboard' ? 'Dashboard' : 
+                 currentPage === 'customers' ? 'Customer Management' : 
+                 currentPage === 'collections' ? 'Daily Collection' :
+                 'Coming Soon'}
               </h1>
             </div>
             <div className="text-sm text-gray-600">
@@ -427,7 +787,8 @@ const Dashboard = ({ user, onLogout }) => {
         <main className="p-6">
           {currentPage === 'dashboard' && <DashboardHome totalCustomers={totalCustomers} />}
           {currentPage === 'customers' && <CustomerManagement />}
-          {currentPage !== 'dashboard' && currentPage !== 'customers' && (
+          {currentPage === 'collections' && <CollectionRecording />}
+          {currentPage !== 'dashboard' && currentPage !== 'customers' && currentPage !== 'collections' && (
             <div className="bg-white rounded-xl shadow-lg p-12 text-center">
               <div className="text-6xl mb-4">🚧</div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Coming Soon</h2>
