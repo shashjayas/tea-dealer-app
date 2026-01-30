@@ -9,6 +9,7 @@ import CustomerSearchBar from '../components/customers/CustomerSearchBar';
 import CustomerTable from '../components/customers/CustomerTable';
 import CustomerForm from '../components/customers/CustomerForm';
 import CustomerImportModal from '../components/customers/CustomerImportModal';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const CustomerManagementPage = () => {
   const { customers, loading, addCustomer, editCustomer, removeCustomer } = useCustomerContext();
@@ -16,6 +17,7 @@ const CustomerManagementPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, customerId: null });
   const [formData, setFormData] = useState({
     bookNumber: '', growerNameSinhala: '', growerNameEnglish: '',
     address: '', nic: '', landName: '', contactNumber: '', route: ''
@@ -61,15 +63,18 @@ const CustomerManagementPage = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this customer?')) {
-      const result = await removeCustomer(id);
-      if (result.success) {
-        showToast('Customer deleted successfully', 'success');
-      } else {
-        showToast('Failed to delete customer', 'error');
-      }
+  const handleDelete = (id) => {
+    setConfirmDialog({ isOpen: true, customerId: id });
+  };
+
+  const confirmDelete = async () => {
+    const result = await removeCustomer(confirmDialog.customerId);
+    if (result.success) {
+      showToast('Customer deleted successfully', 'success');
+    } else {
+      showToast('Failed to delete customer', 'error');
     }
+    setConfirmDialog({ isOpen: false, customerId: null });
   };
 
   const resetForm = () => {
@@ -88,33 +93,37 @@ const CustomerManagementPage = () => {
   };
 
   const handleImport = async () => {
-    if (importPreview.length === 0) {
-      showToast('No valid customers to import', 'warning');
-      return;
-    }
+  if (importPreview.length === 0) {
+    showToast('No valid customers to import', 'warning');
+    return;
+  }
 
-    let success = 0;
-    let fail = 0;
+  let success = 0;
+  let fail = 0;
 
-    for (const customer of importPreview) {
+  for (const customer of importPreview) {
+    try {
       const result = await addCustomer(customer);
       if (result.success) success++;
       else fail++;
+    } catch (error) {
+      console.error('Import error:', error);
+      fail++;
     }
+  }
 
-    if (success > 0) {
-      showToast(`Successfully imported ${success} customer(s)${fail > 0 ? `. Failed: ${fail}` : ''}`, 'success', 5000);
-      setShowImport(false);
-      resetImport();
-    } else {
-      showToast(`Import failed. ${fail} customer(s) could not be imported`, 'error');
-    }
-  };
-
-  const handleCloseImport = () => {
+  if (success > 0) {
+    showToast(
+      `Successfully imported ${success} customer(s)${fail > 0 ? `. Failed: ${fail}` : ''}`, 
+      'success', 
+      5000
+    );
     setShowImport(false);
     resetImport();
-  };
+  } else {
+    showToast(`Import failed. ${fail} customer(s) could not be imported`, 'error');
+  }
+};
 
   return (
     <div className="p-6">
@@ -162,7 +171,6 @@ const CustomerManagementPage = () => {
           onFileChange={handleFileChange}
           onDownloadTemplate={downloadTemplate}
           onImport={handleImport}
-          onClose={handleCloseImport}
           loading={loading}
         />
       )}
@@ -187,6 +195,15 @@ const CustomerManagementPage = () => {
         onDelete={handleDelete}
         onSort={handleSort}
         SortIcon={SortIcon}
+      />
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, customerId: null })}
+        onConfirm={confirmDelete}
+        title="Delete Customer"
+        message="Are you sure you want to delete this customer? This action cannot be undone."
       />
 
       <div className="mt-4 text-sm text-gray-600">
