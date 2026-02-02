@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Upload } from 'lucide-react';
+import { getCollectionsByDate } from '../services/collectionService';
 import { useCustomerContext } from '../contexts/CustomerContext';
 import { useSorting } from '../hooks/useSorting';
 import { useCSVImport } from '../hooks/useCSVImport';
@@ -10,6 +11,7 @@ import CustomerTable from '../components/customers/CustomerTable';
 import CustomerForm from '../components/customers/CustomerForm';
 import CustomerImportModal from '../components/customers/CustomerImportModal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import { getCollectionsByCustomer } from '../services/collectionService';
 
 const CustomerManagementPage = () => {
   const { customers, loading, addCustomer, editCustomer, removeCustomer } = useCustomerContext();
@@ -18,7 +20,7 @@ const CustomerManagementPage = () => {
   const [showImport, setShowImport] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, customerId: null });
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, customerId: null, hasCollections: false });
   const [formData, setFormData] = useState({
     bookNumber: '', growerNameSinhala: '', growerNameEnglish: '',
     address: '', nic: '', landName: '', contactNumber: '', route: ''
@@ -64,8 +66,21 @@ const CustomerManagementPage = () => {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    setConfirmDialog({ isOpen: true, customerId: id });
+  const handleDelete = async (id) => {
+    try {
+      // Check if customer has any collections
+      const collections = await getCollectionsByCustomer(id);
+      if (collections && collections.length > 0) {
+        showToast('Cannot delete customer with existing collection records', 'warning');
+        return;
+      }
+
+      setConfirmDialog({ isOpen: true, customerId: id });
+    } catch (error) {
+      console.error('Error checking collections:', error);
+      // If error (e.g. network), fallback to allow delete attempt, backend will handle FK constraint if any
+      setConfirmDialog({ isOpen: true, customerId: id });
+    }
   };
 
   const confirmDelete = async () => {
@@ -94,43 +109,43 @@ const CustomerManagementPage = () => {
   };
 
   const handleImport = async () => {
-  if (importPreview.length === 0) {
-    showToast('No valid customers to import', 'warning');
-    return;
-  }
-
-  setImportLoading(true); // Use separate loading state
-  let success = 0;
-  let fail = 0;
-
-  for (const customer of importPreview) {
-    try {
-      const result = await addCustomer(customer);
-      if (result.success) success++;
-      else fail++;
-    } catch (error) {
-      console.error('Import error:', error);
-      fail++;
+    if (importPreview.length === 0) {
+      showToast('No valid customers to import', 'warning');
+      return;
     }
-  }
 
-  setImportLoading(false); // Stop loading
+    setImportLoading(true); // Use separate loading state
+    let success = 0;
+    let fail = 0;
 
-  if (success > 0) {
-    showToast(
-      `Successfully imported ${success} customer(s)${fail > 0 ? `. Failed: ${fail}` : ''}`, 
-      'success', 
-      5000
-    );
-    setShowImport(false);
-    resetImport();
-  } else {
-    showToast(`Import failed. ${fail} customer(s) could not be imported`, 'error');
-  }
-};
+    for (const customer of importPreview) {
+      try {
+        const result = await addCustomer(customer);
+        if (result.success) success++;
+        else fail++;
+      } catch (error) {
+        console.error('Import error:', error);
+        fail++;
+      }
+    }
+
+    setImportLoading(false); // Stop loading
+
+    if (success > 0) {
+      showToast(
+        `Successfully imported ${success} customer(s)${fail > 0 ? `. Failed: ${fail}` : ''}`,
+        'success',
+        5000
+      );
+      setShowImport(false);
+      resetImport();
+    } else {
+      showToast(`Import failed. ${fail} customer(s) could not be imported`, 'error');
+    }
+  };
 
   return (
-    <div className="p-6">
+    <div className="p-2">
       {/* Toast notifications */}
       {toasts.map(toast => (
         <Toast
@@ -142,8 +157,7 @@ const CustomerManagementPage = () => {
         />
       ))}
 
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Customer Management</h2>
+      <div className="flex justify-end items-center mb-2">
         <div className="flex gap-3">
           <button
             onClick={() => setShowImport(true)}
@@ -178,7 +192,7 @@ const CustomerManagementPage = () => {
           onClose={() => {
             setShowImport(false);
             resetImport();
-            }}
+          }}
           loading={importLoading}
         />
       )}
