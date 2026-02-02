@@ -16,6 +16,7 @@ const CustomerManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, customerId: null });
   const [formData, setFormData] = useState({
@@ -98,6 +99,7 @@ const CustomerManagementPage = () => {
     return;
   }
 
+  setImportLoading(true); // Use separate loading state
   let success = 0;
   let fail = 0;
 
@@ -111,6 +113,8 @@ const CustomerManagementPage = () => {
       fail++;
     }
   }
+
+  setImportLoading(false); // Stop loading
 
   if (success > 0) {
     showToast(
@@ -171,7 +175,11 @@ const CustomerManagementPage = () => {
           onFileChange={handleFileChange}
           onDownloadTemplate={downloadTemplate}
           onImport={handleImport}
-          loading={loading}
+          onClose={() => {
+            setShowImport(false);
+            resetImport();
+            }}
+          loading={importLoading}
         />
       )}
 
