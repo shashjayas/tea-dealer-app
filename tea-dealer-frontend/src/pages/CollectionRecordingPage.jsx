@@ -52,7 +52,7 @@ const CollectionRecordingPage = () => {
     }
 
     const result = await quickAddCollection(quickAddForm);
-    
+
     if (result.success) {
       showToast('Collection added successfully', 'success');
       setShowQuickAdd(false);
@@ -71,7 +71,7 @@ const CollectionRecordingPage = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2">
       {/* Toast notifications */}
       {toasts.map(toast => (
         <Toast
@@ -83,25 +83,13 @@ const CollectionRecordingPage = () => {
         />
       ))}
 
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Daily Collection Sheet</h2>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowQuickAdd(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all"
-          >
-            <Plus className="w-5 h-5" />
-            Quick Add
-          </button>
-        </div>
-      </div>
-
       <CollectionStats
         selectedDate={selectedDate}
         onDateChange={handleDateChange}
         totalWeight={getTodayTotal()}
         collectedCount={getCollectedCount()}
         totalCustomers={customers.length}
+        onQuickAdd={() => setShowQuickAdd(true)}
       />
 
       {showQuickAdd && (

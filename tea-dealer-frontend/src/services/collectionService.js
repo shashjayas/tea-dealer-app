@@ -16,3 +16,7 @@ export const deleteCollection = async (id) => {
     method: 'DELETE',
   });
 };
+
+export const getCollectionsByCustomer = async (customerId) => {
+  return await apiCall(`/collections/customer/${customerId}`);
+};
