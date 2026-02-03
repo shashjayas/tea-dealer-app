@@ -2,6 +2,7 @@ package com.teadealer.controller;
 
 import com.teadealer.model.Collection;
 import com.teadealer.model.Customer;
+import com.teadealer.model.TeaGrade;
 import com.teadealer.service.CollectionService;
 import com.teadealer.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +17,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/collections")
 public class CollectionController {
-    
+
     @Autowired
     private CollectionService collectionService;
-    
+
     @Autowired
     private CustomerService customerService;
     
@@ -40,24 +41,37 @@ public class CollectionController {
             Long customerId = Long.valueOf(collectionData.get("customerId").toString());
             LocalDate date = LocalDate.parse(collectionData.get("collectionDate").toString());
             Double weightKg = Double.valueOf(collectionData.get("weightKg").toString());
-            Double ratePerKg = collectionData.get("ratePerKg") != null ? 
+            Double ratePerKg = collectionData.get("ratePerKg") != null ?
                 Double.valueOf(collectionData.get("ratePerKg").toString()) : 180.0;
-            
+
+            // Parse grade, default to GRADE_2 if not provided
+            TeaGrade grade = TeaGrade.GRADE_2;
+            if (collectionData.get("grade") != null) {
+                try {
+                    grade = TeaGrade.valueOf(collectionData.get("grade").toString());
+                } catch (IllegalArgumentException e) {
+                    // If invalid grade is provided, use default GRADE_2
+                    grade = TeaGrade.GRADE_2;
+                }
+            }
+
             Customer customer = customerService.getCustomerById(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
-            
-            Collection collection = collectionService.getCollectionByCustomerAndDate(customerId, date)
+
+            // Look for existing collection with same customer, date, and grade
+            Collection collection = collectionService.getCollectionByCustomerDateAndGrade(customerId, date, grade)
                 .orElse(new Collection());
-            
+
             collection.setCustomer(customer);
             collection.setCollectionDate(date);
+            collection.setGrade(grade);
             collection.setWeightKg(java.math.BigDecimal.valueOf(weightKg));
             collection.setRatePerKg(java.math.BigDecimal.valueOf(ratePerKg));
-            
+
             if (collectionData.get("notes") != null) {
                 collection.setNotes(collectionData.get("notes").toString());
             }
-            
+
             Collection saved = collectionService.saveCollection(collection);
             return ResponseEntity.ok(saved);
         } catch (Exception e) {

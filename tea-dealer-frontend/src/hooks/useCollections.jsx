@@ -13,10 +13,16 @@ export const useCollections = (initialDate = new Date().toISOString().split('T')
       const data = await getCollectionsByDate(date);
       const collectionsMap = {};
       data.forEach(col => {
-        collectionsMap[col.customer.id] = {
+        const customerId = col.customer.id;
+        if (!collectionsMap[customerId]) {
+          collectionsMap[customerId] = {};
+        }
+        // Store collections by grade for each customer
+        collectionsMap[customerId][col.grade] = {
           id: col.id,
           weightKg: col.weightKg,
-          notes: col.notes
+          notes: col.notes,
+          grade: col.grade
         };
       });
       setCollections(collectionsMap);
@@ -28,15 +34,24 @@ export const useCollections = (initialDate = new Date().toISOString().split('T')
     }
   };
 
-  const saveCollectionEntry = async (customerId, weight, date = selectedDate) => {
+  const saveCollectionEntry = async (customerId, weight, grade = 'GRADE_2', date = selectedDate) => {
+    const savingKey = `${customerId}_${grade}`;
+
     if (weight === '' || weight === '0') {
-      const collection = collections[customerId];
+      const customerCollections = collections[customerId];
+      const collection = customerCollections?.[grade];
       if (collection && collection.id) {
         try {
           await deleteCollection(collection.id);
           setCollections(prev => {
             const updated = { ...prev };
-            delete updated[customerId];
+            if (updated[customerId]) {
+              delete updated[customerId][grade];
+              // Remove customer entry if no grades left
+              if (Object.keys(updated[customerId]).length === 0) {
+                delete updated[customerId];
+              }
+            }
             return updated;
           });
         } catch (error) {
@@ -49,28 +64,33 @@ export const useCollections = (initialDate = new Date().toISOString().split('T')
     const weightValue = parseFloat(weight);
     if (isNaN(weightValue) || weightValue < 0) return;
 
-    setSaving(prev => ({ ...prev, [customerId]: true }));
+    setSaving(prev => ({ ...prev, [savingKey]: true }));
 
     try {
       const saved = await saveCollection({
         customerId: customerId,
         collectionDate: date,
         weightKg: weightValue,
+        grade: grade,
         ratePerKg: 0
       });
 
       setCollections(prev => ({
         ...prev,
         [customerId]: {
-          id: saved.id,
-          weightKg: saved.weightKg,
-          notes: saved.notes
+          ...prev[customerId],
+          [grade]: {
+            id: saved.id,
+            weightKg: saved.weightKg,
+            notes: saved.notes,
+            grade: saved.grade
+          }
         }
       }));
     } catch (error) {
       console.error('Error saving collection:', error);
     } finally {
-      setSaving(prev => ({ ...prev, [customerId]: false }));
+      setSaving(prev => ({ ...prev, [savingKey]: false }));
     }
   };
 
@@ -88,7 +108,23 @@ export const useCollections = (initialDate = new Date().toISOString().split('T')
   };
 
   const getTodayTotal = () => {
-    return Object.values(collections).reduce((sum, col) => sum + parseFloat(col.weightKg || 0), 0).toFixed(2);
+    let total = 0;
+    Object.values(collections).forEach(customerCollections => {
+      Object.values(customerCollections).forEach(col => {
+        total += parseFloat(col.weightKg || 0);
+      });
+    });
+    return total.toFixed(2);
+  };
+
+  const getGradeTotal = (grade) => {
+    let total = 0;
+    Object.values(collections).forEach(customerCollections => {
+      if (customerCollections[grade]) {
+        total += parseFloat(customerCollections[grade].weightKg || 0);
+      }
+    });
+    return total.toFixed(2);
   };
 
   const getCollectedCount = () => {
@@ -105,6 +141,7 @@ export const useCollections = (initialDate = new Date().toISOString().split('T')
     saveCollectionEntry,
     quickAddCollection,
     getTodayTotal,
+    getGradeTotal,
     getCollectedCount,
   };
 };

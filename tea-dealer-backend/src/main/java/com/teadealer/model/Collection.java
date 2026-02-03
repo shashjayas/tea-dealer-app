@@ -7,21 +7,25 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "collections", 
-    uniqueConstraints = @UniqueConstraint(columnNames = {"customer_id", "collection_date"}))
+@Table(name = "collections",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"customer_id", "collection_date", "grade"}))
 @Data
 public class Collection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @ManyToOne
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
-    
+
     @Column(name = "collection_date", nullable = false)
     private LocalDate collectionDate;
-    
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grade", nullable = false)
+    private TeaGrade grade = TeaGrade.GRADE_2;
+
     @Column(name = "weight_kg", nullable = false, precision = 10, scale = 2)
     private BigDecimal weightKg;
     

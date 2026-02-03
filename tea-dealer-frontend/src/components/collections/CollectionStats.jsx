@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, Package, Users, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
-const CollectionStats = ({ selectedDate, onDateChange, totalWeight, collectedCount, totalCustomers, onQuickAdd }) => {
+const CollectionStats = ({ selectedDate, onDateChange, totalWeight, grade1Total, grade2Total, collectedCount, totalCustomers, onQuickAdd }) => {
   const handlePreviousDay = () => {
     const currentDate = new Date(selectedDate);
     currentDate.setDate(currentDate.getDate() - 1);
@@ -51,11 +51,16 @@ const CollectionStats = ({ selectedDate, onDateChange, totalWeight, collectedCou
       {/* Total Collection Card */}
       <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-lg p-3">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="w-full">
             <p className="text-xs opacity-90">Total Collection</p>
             <p className="text-xl font-bold">{totalWeight} kg</p>
+            <div className="flex gap-2 mt-1">
+              <span className="text-xs opacity-75">G1: {grade1Total}kg</span>
+              <span className="text-xs opacity-75">•</span>
+              <span className="text-xs opacity-75">G2: {grade2Total}kg</span>
+            </div>
           </div>
-          <Package className="w-8 h-8 opacity-80" />
+          <Package className="w-8 h-8 opacity-80 flex-shrink-0" />
         </div>
       </div>
 
