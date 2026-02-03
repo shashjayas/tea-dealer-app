@@ -20,6 +20,7 @@ const CollectionRecordingPage = () => {
     saveCollectionEntry,
     quickAddCollection,
     getTodayTotal,
+    getGradeTotal,
     getCollectedCount,
   } = useCollections();
 
@@ -30,6 +31,7 @@ const CollectionRecordingPage = () => {
     customerId: '',
     collectionDate: new Date().toISOString().split('T')[0],
     weightKg: '',
+    grade: 'GRADE_2',
     notes: ''
   });
 
@@ -41,8 +43,8 @@ const CollectionRecordingPage = () => {
     setSelectedDate(newDate);
   };
 
-  const handleWeightChange = async (customerId, weight) => {
-    await saveCollectionEntry(customerId, weight, selectedDate);
+  const handleWeightChange = async (customerId, weight, grade = 'GRADE_2') => {
+    await saveCollectionEntry(customerId, weight, grade, selectedDate);
   };
 
   const handleQuickAdd = async () => {
@@ -60,6 +62,7 @@ const CollectionRecordingPage = () => {
         customerId: '',
         collectionDate: new Date().toISOString().split('T')[0],
         weightKg: '',
+        grade: 'GRADE_2',
         notes: ''
       });
       if (quickAddForm.collectionDate === selectedDate) {
@@ -87,6 +90,8 @@ const CollectionRecordingPage = () => {
         selectedDate={selectedDate}
         onDateChange={handleDateChange}
         totalWeight={getTodayTotal()}
+        grade1Total={getGradeTotal('GRADE_1')}
+        grade2Total={getGradeTotal('GRADE_2')}
         collectedCount={getCollectedCount()}
         totalCustomers={customers.length}
         onQuickAdd={() => setShowQuickAdd(true)}
@@ -111,6 +116,8 @@ const CollectionRecordingPage = () => {
 
       <CollectionSummary
         totalWeight={getTodayTotal()}
+        grade1Total={getGradeTotal('GRADE_1')}
+        grade2Total={getGradeTotal('GRADE_2')}
         collectedCount={getCollectedCount()}
       />
     </div>
