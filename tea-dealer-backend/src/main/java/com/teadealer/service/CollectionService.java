@@ -43,4 +43,21 @@ public class CollectionService {
     public void deleteCollection(Long id) {
         collectionRepository.deleteById(id);
     }
+
+    // Book number-based methods
+    public List<Collection> getCollectionsByBookNumber(String bookNumber) {
+        return collectionRepository.findByBookNumber(bookNumber);
+    }
+
+    public Optional<Collection> getCollectionByBookNumberAndDate(String bookNumber, LocalDate date) {
+        return collectionRepository.findByBookNumberAndCollectionDate(bookNumber, date);
+    }
+
+    public Optional<Collection> getCollectionByBookNumberDateAndGrade(String bookNumber, LocalDate date, TeaGrade grade) {
+        return collectionRepository.findByBookNumberAndCollectionDateAndGrade(bookNumber, date, grade);
+    }
+
+    public List<Collection> getCollectionsByBookNumberAndDateRange(String bookNumber, LocalDate startDate, LocalDate endDate) {
+        return collectionRepository.findByBookNumberAndCollectionDateBetween(bookNumber, startDate, endDate);
+    }
 }

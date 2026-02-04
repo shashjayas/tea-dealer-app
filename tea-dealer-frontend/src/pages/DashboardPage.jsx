@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Package, CheckCircle, AlertCircle } from 'lucide-react';
 import StatCard from '../components/dashboard/StatCard';
-import RecentCollections from '../components/dashboard/RecentCollections';
+import CollectionChart from '../components/dashboard/CollectionChart';
 import { getCollectionsByDate } from '../services/collectionService';
 import { useCustomerContext } from '../contexts/CustomerContext';
 
@@ -14,12 +14,21 @@ const DashboardPage = () => {
       try {
         const today = new Date().toISOString().split('T')[0];
         const data = await getCollectionsByDate(today);
-        
+
         const totalWeight = data.reduce((sum, col) => sum + parseFloat(col.weightKg || 0), 0);
-        
+
+        // Count unique customers by bookNumber (or customer.id as fallback)
+        const uniqueCustomers = new Set();
+        data.forEach(col => {
+          const identifier = col.bookNumber || col.customer?.id;
+          if (identifier) {
+            uniqueCustomers.add(identifier);
+          }
+        });
+
         setTodayCollection({
           weight: totalWeight.toFixed(2),
-          count: data.length
+          count: uniqueCustomers.size
         });
       } catch (error) {
         console.error('Error fetching today collection:', error);
@@ -42,7 +51,7 @@ const DashboardPage = () => {
           <StatCard key={i} {...stat} />
         ))}
       </div>
-      <RecentCollections />
+      <CollectionChart />
     </>
   );
 };
