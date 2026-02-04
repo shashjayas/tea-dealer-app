@@ -7,6 +7,7 @@ const Header = ({ currentPage, user, sidebarOpen, onToggleSidebar }) => {
       case 'dashboard': return 'Dashboard';
       case 'customers': return 'Customer Management';
       case 'collections': return 'Daily Collection';
+      case 'rates': return 'Manage Rates';
       default: return 'Coming Soon';
     }
   };
