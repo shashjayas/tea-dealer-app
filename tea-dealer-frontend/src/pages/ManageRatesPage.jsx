@@ -128,7 +128,7 @@ const ManageRatesPage = () => {
   const isEditing = !!currentRate;
 
   return (
-    <div className="p-2">
+    <div className="p-3 max-h-screen overflow-hidden">
       {/* Toast notifications */}
       {toasts.map(toast => (
         <Toast
@@ -150,27 +150,37 @@ const ManageRatesPage = () => {
         />
       )}
 
-      {/* Year Selector and Month Tabs */}
-      <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-        <div className="flex items-center justify-start mb-4">
-          <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-4 py-2">
+      {/* Compact Header with Year Selector, Month Tabs, and Form */}
+      <div className="bg-white rounded-lg shadow-lg p-3">
+        {/* Year Selector and Selected Month */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5">
             <button
               onClick={() => handleYearChange(-1)}
-              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              className="p-0.5 hover:bg-gray-200 rounded transition-colors"
               aria-label="Previous year"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+              <ChevronLeft className="w-4 h-4 text-gray-600" />
             </button>
-            <span className="text-xl font-bold text-gray-800 min-w-[80px] text-center">
+            <span className="text-lg font-bold text-gray-800 min-w-[70px] text-center">
               {selectedYear}
             </span>
             <button
               onClick={() => handleYearChange(1)}
-              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              className="p-0.5 hover:bg-gray-200 rounded transition-colors"
               aria-label="Next year"
             >
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+              <ChevronRight className="w-4 h-4 text-gray-600" />
             </button>
+          </div>
+
+          <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg px-4 py-1.5">
+            <span className="text-sm font-semibold">
+              {MONTH_NAMES[selectedMonth]} {selectedYear}
+              <span className="text-xs opacity-90 ml-2">
+                {isEditing ? '(Editing)' : '(New)'}
+              </span>
+            </span>
           </div>
         </div>
 
@@ -180,32 +190,24 @@ const ManageRatesPage = () => {
           onMonthChange={handleMonthChange}
           rates={rates}
         />
-      </div>
 
-      {/* Selected Month Header */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl shadow-lg p-4 mb-6">
-        <h2 className="text-xl font-bold">
-          {MONTH_NAMES[selectedMonth]} {selectedYear}
-        </h2>
-        <p className="text-sm opacity-90 mt-1">
-          {isEditing ? 'Edit existing rates for this month' : 'Add new rates for this month'}
-        </p>
-      </div>
-
-      {/* Rate Form */}
-      {loading ? (
-        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-          <div className="text-gray-500">Loading...</div>
+        {/* Rate Form */}
+        <div className="mt-3">
+          {loading ? (
+            <div className="p-4 text-center">
+              <div className="text-gray-500 text-sm">Loading...</div>
+            </div>
+          ) : (
+            <RateForm
+              formData={formData}
+              onChange={setFormData}
+              onSave={handleSave}
+              saving={saving}
+              isEditing={isEditing}
+            />
+          )}
         </div>
-      ) : (
-        <RateForm
-          formData={formData}
-          onChange={setFormData}
-          onSave={handleSave}
-          saving={saving}
-          isEditing={isEditing}
-        />
-      )}
+      </div>
     </div>
   );
 };

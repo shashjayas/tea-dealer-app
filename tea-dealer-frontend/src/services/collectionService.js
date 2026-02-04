@@ -20,3 +20,7 @@ export const deleteCollection = async (id) => {
 export const getCollectionsByCustomer = async (customerId) => {
   return await apiCall(`/collections/customer/${customerId}`);
 };
+
+export const getCollectionsByDateRange = async (startDate, endDate) => {
+  return await apiCall(`/collections/date-range?startDate=${startDate}&endDate=${endDate}`);
+};

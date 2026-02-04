@@ -17,4 +17,10 @@ public interface CollectionRepository extends JpaRepository<Collection, Long> {
     Optional<Collection> findByCustomerIdAndCollectionDate(Long customerId, LocalDate date);
     Optional<Collection> findByCustomerIdAndCollectionDateAndGrade(Long customerId, LocalDate date, TeaGrade grade);
     List<Collection> findByCustomerIdAndCollectionDateBetween(Long customerId, LocalDate startDate, LocalDate endDate);
+
+    // Query methods using book number
+    List<Collection> findByBookNumber(String bookNumber);
+    Optional<Collection> findByBookNumberAndCollectionDate(String bookNumber, LocalDate date);
+    Optional<Collection> findByBookNumberAndCollectionDateAndGrade(String bookNumber, LocalDate date, TeaGrade grade);
+    List<Collection> findByBookNumberAndCollectionDateBetween(String bookNumber, LocalDate startDate, LocalDate endDate);
 }

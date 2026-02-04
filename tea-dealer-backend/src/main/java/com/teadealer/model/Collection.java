@@ -8,12 +8,15 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "collections",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"customer_id", "collection_date", "grade"}))
+    uniqueConstraints = @UniqueConstraint(columnNames = {"book_number", "collection_date", "grade"}))
 @Data
 public class Collection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "book_number", nullable = false)
+    private String bookNumber;
 
     @ManyToOne
     @JoinColumn(name = "customer_id", nullable = false)
@@ -48,6 +51,10 @@ public class Collection {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        // Auto-set book number from customer if not already set
+        if (customer != null && bookNumber == null) {
+            bookNumber = customer.getBookNumber();
+        }
         // Auto-calculate total amount
         if (weightKg != null && ratePerKg != null) {
             totalAmount = weightKg.multiply(ratePerKg);

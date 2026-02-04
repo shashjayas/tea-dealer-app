@@ -17,32 +17,28 @@ const MONTHS = [
 
 const MonthTabs = ({ selectedMonth, onMonthChange, rates }) => {
   return (
-    <div className="bg-white rounded-xl shadow-lg p-4">
-      <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
-        {MONTHS.map((month) => {
-          const hasRate = rates[month.number];
-          return (
-            <button
-              key={month.number}
-              onClick={() => onMonthChange(month.number)}
-              className={`
-                p-3 rounded-lg font-semibold text-sm transition-all
-                ${selectedMonth === month.number
-                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md scale-105'
-                  : hasRate
-                    ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300'
-                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
-                }
-              `}
-              title={month.fullName}
-            >
-              <div className="flex flex-col items-center">
-                <span>{month.name}</span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+    <div className="grid grid-cols-6 md:grid-cols-12 gap-1.5">
+      {MONTHS.map((month) => {
+        const hasRate = rates[month.number];
+        return (
+          <button
+            key={month.number}
+            onClick={() => onMonthChange(month.number)}
+            className={`
+              py-1.5 px-2 rounded-md font-medium text-xs transition-all
+              ${selectedMonth === month.number
+                ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-sm'
+                : hasRate
+                  ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+              }
+            `}
+            title={month.fullName}
+          >
+            {month.name}
+          </button>
+        );
+      })}
     </div>
   );
 };

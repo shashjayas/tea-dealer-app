@@ -29,10 +29,22 @@ public class CollectionController {
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(collectionService.getCollectionsByDate(date));
     }
-    
+
+    @GetMapping("/date-range")
+    public ResponseEntity<List<Collection>> getCollectionsByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(collectionService.getCollectionsByDateRange(startDate, endDate));
+    }
+
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<Collection>> getCollectionsByCustomer(@PathVariable Long customerId) {
         return ResponseEntity.ok(collectionService.getCollectionsByCustomer(customerId));
+    }
+
+    @GetMapping("/book-number/{bookNumber}")
+    public ResponseEntity<List<Collection>> getCollectionsByBookNumber(@PathVariable String bookNumber) {
+        return ResponseEntity.ok(collectionService.getCollectionsByBookNumber(bookNumber));
     }
     
     @PostMapping
@@ -58,11 +70,14 @@ public class CollectionController {
             Customer customer = customerService.getCustomerById(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-            // Look for existing collection with same customer, date, and grade
-            Collection collection = collectionService.getCollectionByCustomerDateAndGrade(customerId, date, grade)
+            String bookNumber = customer.getBookNumber();
+
+            // Look for existing collection with same book number, date, and grade
+            Collection collection = collectionService.getCollectionByBookNumberDateAndGrade(bookNumber, date, grade)
                 .orElse(new Collection());
 
             collection.setCustomer(customer);
+            collection.setBookNumber(bookNumber);
             collection.setCollectionDate(date);
             collection.setGrade(grade);
             collection.setWeightKg(java.math.BigDecimal.valueOf(weightKg));
