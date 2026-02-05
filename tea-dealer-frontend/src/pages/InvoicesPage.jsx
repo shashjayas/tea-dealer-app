@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Search, FileText, Download, Eye, List, User, RefreshCw, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, FileText, Download, Eye, List, User, RefreshCw, Zap, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useCustomerContext } from '../contexts/CustomerContext';
 import {
   getCollectionsByBookNumberAndDateRange,
@@ -45,6 +45,8 @@ const InvoicesPage = () => {
   const [hideZeroKg, setHideZeroKg] = useState(false);
   const [hideNotGenerated, setHideNotGenerated] = useState(false);
   const [listSearchTerm, setListSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('bookNumber');
+  const [sortDirection, setSortDirection] = useState('asc');
 
   // Load all invoices when in list view
   useEffect(() => {
@@ -149,7 +151,7 @@ const InvoicesPage = () => {
     }
   };
 
-  // Filter and search summaries
+  // Filter, search and sort summaries
   const filteredSummaries = useMemo(() => {
     let filtered = invoiceSummaries;
 
@@ -172,8 +174,63 @@ const InvoicesPage = () => {
       );
     }
 
+    // Sort the filtered results
+    filtered = [...filtered].sort((a, b) => {
+      let aVal, bVal;
+
+      switch (sortField) {
+        case 'bookNumber':
+          aVal = parseInt(a.customer.bookNumber) || a.customer.bookNumber;
+          bVal = parseInt(b.customer.bookNumber) || b.customer.bookNumber;
+          break;
+        case 'customerName':
+          aVal = a.customer.growerNameEnglish.toLowerCase();
+          bVal = b.customer.growerNameEnglish.toLowerCase();
+          break;
+        case 'status':
+          aVal = a.isGenerated ? 1 : 0;
+          bVal = b.isGenerated ? 1 : 0;
+          break;
+        case 'totalKg':
+          aVal = a.totalKg;
+          bVal = b.totalKg;
+          break;
+        case 'netAmount':
+          aVal = a.netAmount;
+          bVal = b.netAmount;
+          break;
+        default:
+          aVal = parseInt(a.customer.bookNumber) || a.customer.bookNumber;
+          bVal = parseInt(b.customer.bookNumber) || b.customer.bookNumber;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
     return filtered;
-  }, [invoiceSummaries, hideZeroNetPay, hideZeroKg, hideNotGenerated, listSearchTerm]);
+  }, [invoiceSummaries, hideZeroNetPay, hideZeroKg, hideNotGenerated, listSearchTerm, sortField, sortDirection]);
+
+  // Handle sort column click
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sort icon component
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp className="w-3 h-3 text-green-600" />
+      : <ArrowDown className="w-3 h-3 text-green-600" />;
+  };
 
   const generatedCount = invoiceSummaries.filter(s => s.isGenerated).length;
 
@@ -517,11 +574,51 @@ const InvoicesPage = () => {
                           className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                         />
                       </th>
-                      <th className="px-3 py-2 text-left text-gray-600 font-medium border-b">Book No</th>
-                      <th className="px-3 py-2 text-left text-gray-600 font-medium border-b">Customer Name</th>
-                      <th className="px-3 py-2 text-center text-gray-600 font-medium border-b">Status</th>
-                      <th className="px-3 py-2 text-right text-gray-600 font-medium border-b">Total Kg</th>
-                      <th className="px-3 py-2 text-right text-gray-600 font-medium border-b">Net Amount</th>
+                      <th
+                        className="px-3 py-2 text-left text-gray-600 font-medium border-b cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('bookNumber')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Book No
+                          <SortIcon field="bookNumber" />
+                        </div>
+                      </th>
+                      <th
+                        className="px-3 py-2 text-left text-gray-600 font-medium border-b cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('customerName')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Customer Name
+                          <SortIcon field="customerName" />
+                        </div>
+                      </th>
+                      <th
+                        className="px-3 py-2 text-center text-gray-600 font-medium border-b cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('status')}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          Status
+                          <SortIcon field="status" />
+                        </div>
+                      </th>
+                      <th
+                        className="px-3 py-2 text-right text-gray-600 font-medium border-b cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('totalKg')}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          Total Kg
+                          <SortIcon field="totalKg" />
+                        </div>
+                      </th>
+                      <th
+                        className="px-3 py-2 text-right text-gray-600 font-medium border-b cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('netAmount')}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          Net Amount
+                          <SortIcon field="netAmount" />
+                        </div>
+                      </th>
                       <th className="px-3 py-2 text-center text-gray-600 font-medium border-b">Actions</th>
                     </tr>
                   </thead>
