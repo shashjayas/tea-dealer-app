@@ -1,6 +1,6 @@
 package com.teadealer.model;
 
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.Data;
 
 @Entity

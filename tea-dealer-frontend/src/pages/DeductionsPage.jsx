@@ -17,6 +17,7 @@ const DeductionsPage = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [monthlyTotals, setMonthlyTotals] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -324,13 +325,45 @@ const DeductionsPage = () => {
               )}
             </div>
 
-            <div className="flex-1 px-2 py-1.5 bg-gray-50 border border-gray-300 rounded text-sm">
-              {selectedCustomer ? (
-                <span className="text-gray-800">
-                  {selectedCustomer.bookNumber} - {selectedCustomer.growerNameEnglish}
-                </span>
-              ) : (
-                <span className="text-gray-400">No customer selected</span>
+            <div className="relative flex-1">
+              <div
+                onClick={() => setShowCustomerDropdown(!showCustomerDropdown)}
+                className="px-2 py-1.5 bg-gray-50 border border-gray-300 rounded text-sm cursor-pointer hover:bg-gray-100 transition-colors"
+              >
+                {selectedCustomer ? (
+                  <span className="text-gray-800">
+                    {selectedCustomer.bookNumber} - {selectedCustomer.growerNameEnglish}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">No customer selected</span>
+                )}
+              </div>
+              {showCustomerDropdown && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowCustomerDropdown(false)}
+                  />
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto z-20">
+                    {customers.map(customer => (
+                      <div
+                        key={customer.id}
+                        onClick={() => {
+                          setSelectedCustomer(customer);
+                          setShowCustomerDropdown(false);
+                        }}
+                        className={`px-3 py-2 hover:bg-green-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 ${
+                          selectedCustomer?.id === customer.id ? 'bg-green-100' : ''
+                        }`}
+                      >
+                        <div className="font-medium text-gray-800">{customer.bookNumber} - {customer.growerNameEnglish}</div>
+                        {customer.growerNameSinhala && (
+                          <div className="text-xs text-gray-500">{customer.growerNameSinhala}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
@@ -347,26 +380,26 @@ const DeductionsPage = () => {
         {selectedCustomer && monthlyTotals && !loading && (
           <>
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <div className="grid grid-cols-3 gap-2 mb-3">
               {/* Monthly Total */}
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg p-3">
-                <div className="text-xs opacity-90 mb-1">This Month Total</div>
-                <div className="text-xl font-bold mb-1">Rs. {parseFloat(monthlyTotals.totalAmount || 0).toFixed(2)}</div>
-                <div className="text-xs opacity-75">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                <div className="text-xs text-blue-600 mb-0.5">This Month Total</div>
+                <div className="text-base font-bold text-blue-800">Rs. {parseFloat(monthlyTotals.totalAmount || 0).toFixed(2)}</div>
+                <div className="text-xs text-blue-500">
                   G1: {parseFloat(monthlyTotals.grade1Kg || 0).toFixed(1)}kg | G2: {parseFloat(monthlyTotals.grade2Kg || 0).toFixed(1)}kg
                 </div>
               </div>
 
               {/* Total Deductions */}
-              <div className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg p-3">
-                <div className="text-xs opacity-90 mb-1">Total Deductions</div>
-                <div className="text-xl font-bold">Rs. {totalDeductions.toFixed(2)}</div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+                <div className="text-xs text-red-600 mb-0.5">Total Deductions</div>
+                <div className="text-base font-bold text-red-800">Rs. {totalDeductions.toFixed(2)}</div>
               </div>
 
               {/* Net Amount */}
-              <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg p-3">
-                <div className="text-xs opacity-90 mb-1">Net Amount</div>
-                <div className="text-xl font-bold">Rs. {netAmount.toFixed(2)}</div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                <div className="text-xs text-green-600 mb-0.5">Net Amount</div>
+                <div className="text-base font-bold text-green-800">Rs. {netAmount.toFixed(2)}</div>
               </div>
             </div>
 
