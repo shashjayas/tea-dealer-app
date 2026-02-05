@@ -17,15 +17,15 @@ const CollectionStats = ({ selectedDate, onDateChange, totalWeight, grade1Total,
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       {/* Calendar Card */}
-      <div className="bg-white rounded-xl shadow-lg p-3">
+      <div className="bg-white rounded-xl shadow-lg p-3 overflow-hidden">
         <div className="flex items-center gap-2">
-          <Calendar className="w-6 h-6 text-green-600" />
-          <div className="flex-1">
+          <Calendar className="w-6 h-6 text-green-600 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-600">Selected Date</p>
             <div className="flex items-center gap-1">
               <button
                 onClick={handlePreviousDay}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
                 aria-label="Previous day"
               >
                 <ChevronLeft className="w-4 h-4 text-gray-600" />
@@ -34,11 +34,11 @@ const CollectionStats = ({ selectedDate, onDateChange, totalWeight, grade1Total,
                 type="date"
                 value={selectedDate}
                 onChange={(e) => onDateChange(e.target.value)}
-                className="text-sm font-bold text-gray-800 border-0 outline-none cursor-pointer"
+                className="text-sm font-bold text-gray-800 border-0 outline-none cursor-pointer min-w-0 max-w-[130px]"
               />
               <button
                 onClick={handleNextDay}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
                 aria-label="Next day"
               >
                 <ChevronRight className="w-4 h-4 text-gray-600" />
