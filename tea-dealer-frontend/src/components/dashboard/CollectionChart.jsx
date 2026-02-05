@@ -202,31 +202,37 @@ const CollectionChart = () => {
             </div>
 
             {/* Bars */}
-            <div className="relative h-full flex items-end justify-between gap-1 px-2">
-              {chartData.map((item, index) => (
-                <div key={index} className="flex-1 flex flex-col items-center justify-end group">
-                  <div className="relative w-full">
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                      {item.value.toFixed(2)} kg
+            <div className="relative h-full flex items-end justify-between gap-1 px-2 pb-6">
+              {chartData.map((item, index) => {
+                const barHeight = scaleMax > 0 ? (item.value / scaleMax) * 100 : 0;
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center group h-full">
+                    {/* Bar container - takes remaining height */}
+                    <div className="flex-1 w-full flex items-end">
+                      <div className="relative w-full h-full flex items-end">
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                          {item.value.toFixed(2)} kg
+                        </div>
+
+                        {/* Bar */}
+                        <div
+                          className="w-full bg-gradient-to-t from-green-600 to-emerald-500 rounded-t transition-all duration-300 hover:from-green-700 hover:to-emerald-600"
+                          style={{
+                            height: `${barHeight}%`,
+                            minHeight: item.value > 0 ? '4px' : '0px'
+                          }}
+                        />
+                      </div>
                     </div>
 
-                    {/* Bar */}
-                    <div
-                      className="w-full bg-gradient-to-t from-green-600 to-emerald-500 rounded-t transition-all duration-300 hover:from-green-700 hover:to-emerald-600"
-                      style={{
-                        height: `${(item.value / scaleMax) * 100}%`,
-                        minHeight: item.value > 0 ? '4px' : '0px'
-                      }}
-                    />
+                    {/* Label */}
+                    <div className="text-xs text-gray-600 mt-1 font-medium shrink-0">
+                      {item.label}
+                    </div>
                   </div>
-
-                  {/* Label */}
-                  <div className="text-xs text-gray-600 mt-2 font-medium">
-                    {item.label}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
