@@ -9,24 +9,31 @@ export const apiCall = async (endpoint, options = {}) => {
       },
       ...options,
     });
-    
+
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      // Try to get error message from response body
+      try {
+        const errorData = await response.json();
+        const errorMessage = errorData.error || errorData.message || response.statusText;
+        throw new Error(`API Error: ${errorMessage}`);
+      } catch (e) {
+        throw new Error(`API Error: ${response.statusText}`);
+      }
     }
-    
+
     // Check if response has content before parsing JSON
     const contentType = response.headers.get('content-type');
     const contentLength = response.headers.get('content-length');
-    
+
     // If no content or content-length is 0, return null instead of parsing
     if (contentLength === '0' || !contentType?.includes('application/json')) {
       return null;
     }
-    
+
     // Try to parse JSON, but handle empty responses
     const text = await response.text();
     return text ? JSON.parse(text) : null;
-    
+
   } catch (error) {
     console.error('API call failed:', error);
     throw error;

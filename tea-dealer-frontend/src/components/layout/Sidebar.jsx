@@ -35,7 +35,7 @@ const Sidebar = ({ currentPage, onPageChange, user, onLogout, isOpen }) => {
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-green-600">
         <button
           onClick={onLogout}
-          className="w-full px-4 py-3 bg-red-500 hover:bg-red-600 rounded-lg font-medium"
+          className="w-full px-4 py-3 bg-yellow-500 hover:bg-yellow-600 rounded-lg font-medium text-gray-900"
         >
           Logout
         </button>
