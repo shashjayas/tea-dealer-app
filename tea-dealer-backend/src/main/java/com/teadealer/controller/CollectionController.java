@@ -46,7 +46,15 @@ public class CollectionController {
     public ResponseEntity<List<Collection>> getCollectionsByBookNumber(@PathVariable String bookNumber) {
         return ResponseEntity.ok(collectionService.getCollectionsByBookNumber(bookNumber));
     }
-    
+
+    @GetMapping("/book-number/{bookNumber}/date-range")
+    public ResponseEntity<List<Collection>> getCollectionsByBookNumberAndDateRange(
+            @PathVariable String bookNumber,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(collectionService.getCollectionsByBookNumberAndDateRange(bookNumber, startDate, endDate));
+    }
+
     @PostMapping
     public ResponseEntity<?> saveCollection(@RequestBody Map<String, Object> collectionData) {
         try {

@@ -1,0 +1,212 @@
+package com.teadealer.service;
+
+import com.teadealer.model.Collection;
+import com.teadealer.model.Customer;
+import com.teadealer.model.Deduction;
+import com.teadealer.model.Invoice;
+import com.teadealer.model.MonthlyRate;
+import com.teadealer.model.TeaGrade;
+import com.teadealer.repository.InvoiceRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class InvoiceService {
+
+    @Autowired
+    private InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private CustomerService customerService;
+
+    @Autowired
+    private CollectionService collectionService;
+
+    @Autowired
+    private MonthlyRateService monthlyRateService;
+
+    @Autowired
+    private DeductionService deductionService;
+
+    public Optional<Invoice> getInvoiceById(Long id) {
+        return invoiceRepository.findById(id);
+    }
+
+    public Optional<Invoice> getInvoiceByCustomerAndPeriod(Long customerId, Integer year, Integer month) {
+        return invoiceRepository.findByCustomerIdAndYearAndMonth(customerId, year, month);
+    }
+
+    public List<Invoice> getInvoicesByPeriod(Integer year, Integer month) {
+        return invoiceRepository.findByYearAndMonth(year, month);
+    }
+
+    public List<Invoice> getInvoicesByCustomer(Long customerId) {
+        return invoiceRepository.findByCustomerId(customerId);
+    }
+
+    public long getInvoiceCountByPeriod(Integer year, Integer month) {
+        return invoiceRepository.countByYearAndMonth(year, month);
+    }
+
+    public boolean isInvoiceGenerated(Long customerId, Integer year, Integer month) {
+        return invoiceRepository.existsByCustomerIdAndYearAndMonth(customerId, year, month);
+    }
+
+    @Transactional
+    public Invoice generateInvoice(Long customerId, Integer year, Integer month) {
+        Customer customer = customerService.getCustomerById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        // Check if invoice already exists
+        Optional<Invoice> existingInvoice = invoiceRepository.findByCustomerIdAndYearAndMonth(customerId, year, month);
+
+        Invoice invoice = existingInvoice.orElse(new Invoice());
+
+        // Set customer info
+        invoice.setCustomer(customer);
+        invoice.setBookNumber(customer.getBookNumber());
+        invoice.setCustomerName(customer.getGrowerNameEnglish());
+        invoice.setCustomerNameSinhala(customer.getGrowerNameSinhala());
+        invoice.setYear(year);
+        invoice.setMonth(month);
+
+        // Get monthly rate
+        MonthlyRate monthlyRate = monthlyRateService.getRateByYearAndMonth(year, month)
+                .orElse(new MonthlyRate());
+
+        // Get collections for the month
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+        List<Collection> collections = collectionService.getCollectionsByBookNumberAndDateRange(
+                customer.getBookNumber(), startDate, endDate);
+
+        // Calculate grade totals
+        BigDecimal grade1Kg = BigDecimal.ZERO;
+        BigDecimal grade2Kg = BigDecimal.ZERO;
+
+        // Build collection details for storage as simple JSON array
+        StringBuilder detailsBuilder = new StringBuilder("[");
+        boolean first = true;
+
+        for (Collection col : collections) {
+            if (!first) {
+                detailsBuilder.append(",");
+            }
+            first = false;
+
+            detailsBuilder.append("{\"date\":\"")
+                    .append(col.getCollectionDate().toString())
+                    .append("\",\"grade\":\"")
+                    .append(col.getGrade().name())
+                    .append("\",\"weightKg\":")
+                    .append(col.getWeightKg() != null ? col.getWeightKg().toString() : "0")
+                    .append("}");
+
+            if (col.getGrade() == TeaGrade.GRADE_1) {
+                grade1Kg = grade1Kg.add(col.getWeightKg() != null ? col.getWeightKg() : BigDecimal.ZERO);
+            } else if (col.getGrade() == TeaGrade.GRADE_2) {
+                grade2Kg = grade2Kg.add(col.getWeightKg() != null ? col.getWeightKg() : BigDecimal.ZERO);
+            }
+        }
+        detailsBuilder.append("]");
+
+        // Store collection details
+        invoice.setCollectionDetails(detailsBuilder.toString());
+
+        // Set kg totals
+        invoice.setGrade1Kg(grade1Kg);
+        invoice.setGrade2Kg(grade2Kg);
+
+        // Set rates
+        BigDecimal grade1Rate = monthlyRate.getGrade1Rate() != null ? monthlyRate.getGrade1Rate() : BigDecimal.ZERO;
+        BigDecimal grade2Rate = monthlyRate.getGrade2Rate() != null ? monthlyRate.getGrade2Rate() : BigDecimal.ZERO;
+        invoice.setGrade1Rate(grade1Rate);
+        invoice.setGrade2Rate(grade2Rate);
+
+        // Calculate amounts
+        BigDecimal grade1Amount = grade1Kg.multiply(grade1Rate);
+        BigDecimal grade2Amount = grade2Kg.multiply(grade2Rate);
+        BigDecimal totalAmount = grade1Amount.add(grade2Amount);
+
+        invoice.setGrade1Amount(grade1Amount);
+        invoice.setGrade2Amount(grade2Amount);
+        invoice.setTotalAmount(totalAmount);
+
+        // Calculate transport deduction
+        BigDecimal transportPercentage = monthlyRate.getTransportPercentage() != null ?
+                monthlyRate.getTransportPercentage() : BigDecimal.ZERO;
+        BigDecimal transportDeduction = totalAmount.multiply(transportPercentage)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        invoice.setTransportPercentage(transportPercentage);
+        invoice.setTransportDeduction(transportDeduction);
+
+        // Set stamp fee
+        invoice.setStampFee(monthlyRate.getStampFee());
+
+        // Get deductions
+        Optional<Deduction> deductionOpt = deductionService.getDeductionByCustomerAndPeriod(customerId, year, month);
+        if (deductionOpt.isPresent()) {
+            Deduction deduction = deductionOpt.get();
+            invoice.setLastMonthArrears(deduction.getLastMonthArrears());
+            invoice.setAdvanceAmount(deduction.getAdvanceAmount());
+            invoice.setLoanAmount(deduction.getLoanAmount());
+            invoice.setFertilizer1Amount(deduction.getFertilizer1Amount());
+            invoice.setFertilizer2Amount(deduction.getFertilizer2Amount());
+            invoice.setTeaPacketsCount(deduction.getTeaPacketsCount());
+            invoice.setTeaPacketsTotal(deduction.getTeaPacketsTotal());
+            invoice.setAgrochemicalsAmount(deduction.getAgrochemicalsAmount());
+            invoice.setOtherDeductions(deduction.getOtherDeductions());
+            invoice.setOtherDeductionsNote(deduction.getOtherDeductionsNote());
+        }
+
+        // Set status
+        invoice.setStatus(Invoice.InvoiceStatus.GENERATED);
+
+        return invoiceRepository.save(invoice);
+    }
+
+    @Transactional
+    public List<Invoice> generateAllInvoicesForPeriod(Integer year, Integer month) {
+        List<Customer> customers = customerService.getAllCustomers();
+        List<Invoice> generatedInvoices = new ArrayList<>();
+
+        for (Customer customer : customers) {
+            try {
+                Invoice invoice = generateInvoice(customer.getId(), year, month);
+                generatedInvoices.add(invoice);
+            } catch (Exception e) {
+                // Log error but continue with other customers
+                System.err.println("Error generating invoice for customer " + customer.getId() + ": " + e.getMessage());
+            }
+        }
+
+        return generatedInvoices;
+    }
+
+    @Transactional
+    public Invoice regenerateInvoice(Long customerId, Integer year, Integer month) {
+        // Simply call generateInvoice - it handles both create and update
+        return generateInvoice(customerId, year, month);
+    }
+
+    @Transactional
+    public void deleteInvoice(Long id) {
+        invoiceRepository.deleteById(id);
+    }
+
+    public Invoice updateInvoiceStatus(Long id, Invoice.InvoiceStatus status) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Invoice not found"));
+        invoice.setStatus(status);
+        return invoiceRepository.save(invoice);
+    }
+}

@@ -7,6 +7,7 @@ import CustomerManagementPage from './pages/CustomerManagementPage';
 import CollectionRecordingPage from './pages/CollectionRecordingPage';
 import ManageRatesPage from './pages/ManageRatesPage';
 import DeductionsPage from './pages/DeductionsPage';
+import InvoicesPage from './pages/InvoicesPage';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 const App = () => {
@@ -26,7 +27,8 @@ const App = () => {
             {currentPage === 'collections' && <CollectionRecordingPage />}
             {currentPage === 'rates' && <ManageRatesPage />}
             {currentPage === 'deductions' && <DeductionsPage />}
-            {currentPage !== 'dashboard' && currentPage !== 'customers' && currentPage !== 'collections' && currentPage !== 'rates' && currentPage !== 'deductions' && (
+            {currentPage === 'invoices' && <InvoicesPage />}
+            {currentPage !== 'dashboard' && currentPage !== 'customers' && currentPage !== 'collections' && currentPage !== 'rates' && currentPage !== 'deductions' && currentPage !== 'invoices' && (
               <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                 <div className="text-6xl mb-4">🚧</div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Coming Soon</h2>

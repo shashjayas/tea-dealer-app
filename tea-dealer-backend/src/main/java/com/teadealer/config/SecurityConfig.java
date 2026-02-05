@@ -20,15 +20,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .anyRequest().permitAll()  // Changed this temporarily
-            )
-            .httpBasic(basic -> basic.disable())  // Disable basic auth
-            .formLogin(form -> form.disable());   // Disable form login
-        
+            .cors().configurationSource(corsConfigurationSource())
+            .and()
+            .csrf().disable()
+            .authorizeRequests()
+                .antMatchers("/api/auth/**").permitAll()
+                .anyRequest().permitAll()
+            .and()
+            .httpBasic().disable()
+            .formLogin().disable();
+
         return http.build();
     }
 
