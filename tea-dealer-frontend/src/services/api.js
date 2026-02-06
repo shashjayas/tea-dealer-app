@@ -1,4 +1,7 @@
-const API_BASE = 'http://localhost:8080/api';
+// Use current hostname for API calls (allows access from other devices on the network)
+const API_HOST = window.location.hostname;
+const API_PORT = 8080;
+const API_BASE = `http://${API_HOST}:${API_PORT}/api`;
 
 export const apiCall = async (endpoint, options = {}) => {
   try {

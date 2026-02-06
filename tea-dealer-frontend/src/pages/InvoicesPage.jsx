@@ -963,191 +963,153 @@ const InvoicesPage = () => {
                 {currentInvoice ? (
                   <>
                     {/* Invoice Header */}
-                    <div className="text-center border-b border-gray-300 pb-3 mb-4">
-                      <h2 className="text-lg font-bold text-gray-800">Tea Collection Invoice</h2>
-                      <p className="text-sm text-gray-600">{MONTHS[selectedMonth - 1]} {selectedYear}</p>
-                    </div>
-
-                    {/* Customer Info */}
-                    <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">Book No:</span>
-                        <span className="ml-2 font-semibold text-gray-800">{currentInvoice.bookNumber}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-gray-500">Name:</span>
-                        <span className="ml-2 font-semibold text-gray-800">{currentInvoice.customerName}</span>
-                        {currentInvoice.customerNameSinhala && (
-                          <span className="ml-2 text-gray-600">({currentInvoice.customerNameSinhala})</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Tea Collection Table */}
-                    <div className="mb-4">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-2">Supplied Tea (Kg)</h3>
-                      <div className="border border-gray-200 rounded overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-gray-600 font-medium border-b">Date</th>
-                              <th className="px-3 py-2 text-right text-gray-600 font-medium border-b">Grade 1</th>
-                              <th className="px-3 py-2 text-right text-gray-600 font-medium border-b">Grade 2</th>
-                              <th className="px-3 py-2 text-right text-gray-600 font-medium border-b">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {sortedDates.length > 0 ? (
-                              sortedDates.map(date => (
-                                <tr key={date} className="border-b border-gray-100 last:border-b-0">
-                                  <td className="px-3 py-1.5 text-gray-700">{formatDate(date)}</td>
-                                  <td className="px-3 py-1.5 text-right text-gray-700">
-                                    {collectionsByDate[date].grade1 > 0 ? collectionsByDate[date].grade1.toFixed(2) : '-'}
-                                  </td>
-                                  <td className="px-3 py-1.5 text-right text-gray-700">
-                                    {collectionsByDate[date].grade2 > 0 ? collectionsByDate[date].grade2.toFixed(2) : '-'}
-                                  </td>
-                                  <td className="px-3 py-1.5 text-right font-medium text-gray-800">
-                                    {(collectionsByDate[date].grade1 + collectionsByDate[date].grade2).toFixed(2)}
-                                  </td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan="4" className="px-3 py-4 text-center text-gray-500">No collections</td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* Summary Section */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="border border-gray-200 rounded p-3">
-                        <h3 className="text-sm font-semibold text-gray-700 mb-2">Summary</h3>
-                        <table className="w-full text-sm">
-                          <tbody>
-                            <tr className="border-b border-gray-100">
-                              <td className="py-1 text-gray-600">Total Grade 1</td>
-                              <td className="py-1 text-right font-medium">{parseFloat(currentInvoice.grade1Kg || 0).toFixed(2)} kg</td>
-                            </tr>
-                            <tr className="border-b border-gray-100">
-                              <td className="py-1 text-gray-600">Total Grade 2</td>
-                              <td className="py-1 text-right font-medium">{parseFloat(currentInvoice.grade2Kg || 0).toFixed(2)} kg</td>
-                            </tr>
-                            <tr className="border-b border-gray-100">
-                              <td className="py-1 text-gray-600">Grade 1 Rate</td>
-                              <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.grade1Rate || 0).toFixed(2)}/kg</td>
-                            </tr>
-                            <tr className="border-b border-gray-100">
-                              <td className="py-1 text-gray-600">Grade 2 Rate</td>
-                              <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.grade2Rate || 0).toFixed(2)}/kg</td>
-                            </tr>
-                            <tr className="border-b border-gray-100">
-                              <td className="py-1 text-gray-600">Grade 1 Amount</td>
-                              <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.grade1Amount || 0).toFixed(2)}</td>
-                            </tr>
-                            <tr className="border-b border-gray-100">
-                              <td className="py-1 text-gray-600">Grade 2 Amount</td>
-                              <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.grade2Amount || 0).toFixed(2)}</td>
-                            </tr>
-                            <tr className="bg-blue-50">
-                              <td className="py-1.5 font-semibold text-blue-800">Total Amount</td>
-                              <td className="py-1.5 text-right font-bold text-blue-800">Rs. {parseFloat(currentInvoice.totalAmount || 0).toFixed(2)}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      <div className="border border-gray-200 rounded p-3">
-                        <h3 className="text-sm font-semibold text-gray-700 mb-2">Deductions</h3>
-                        <table className="w-full text-sm">
-                          <tbody>
-                            {currentInvoice.lastMonthArrears > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Previous Arrears</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.lastMonthArrears).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {currentInvoice.advanceAmount > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Advance</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.advanceAmount).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {currentInvoice.loanAmount > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Loan</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.loanAmount).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {currentInvoice.fertilizer1Amount > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Fertilizer 1</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.fertilizer1Amount).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {currentInvoice.fertilizer2Amount > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Fertilizer 2</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.fertilizer2Amount).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {currentInvoice.teaPacketsTotal > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Tea Packets ({currentInvoice.teaPacketsCount || 0})</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.teaPacketsTotal).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {currentInvoice.agrochemicalsAmount > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Agrochemicals</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.agrochemicalsAmount).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {currentInvoice.transportDeduction > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Transport ({currentInvoice.transportPercentage || 0}%)</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.transportDeduction).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {currentInvoice.stampFee > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Stamp Fee</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.stampFee).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {currentInvoice.otherDeductions > 0 && (
-                              <tr className="border-b border-gray-100">
-                                <td className="py-1 text-gray-600">Other{currentInvoice.otherDeductionsNote ? ` (${currentInvoice.otherDeductionsNote})` : ''}</td>
-                                <td className="py-1 text-right font-medium">Rs. {parseFloat(currentInvoice.otherDeductions).toFixed(2)}</td>
-                              </tr>
-                            )}
-                            {parseFloat(currentInvoice.totalDeductions || 0) === 0 && (
-                              <tr>
-                                <td colSpan="2" className="py-2 text-center text-gray-500">No deductions</td>
-                              </tr>
-                            )}
-                            <tr className="bg-red-50">
-                              <td className="py-1.5 font-semibold text-red-800">Total Deductions</td>
-                              <td className="py-1.5 text-right font-bold text-red-800">Rs. {parseFloat(currentInvoice.totalDeductions || 0).toFixed(2)}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* Net Amount */}
-                    <div className={`p-4 rounded-lg ${parseFloat(currentInvoice.netAmount || 0) >= 0 ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'}`}>
-                      <div className="flex justify-between items-center">
-                        <span className={`text-lg font-semibold ${parseFloat(currentInvoice.netAmount || 0) >= 0 ? 'text-green-800' : 'text-orange-800'}`}>
-                          {parseFloat(currentInvoice.netAmount || 0) >= 0 ? 'Amount Payable' : 'Balance Due'}
-                        </span>
-                        <span className={`text-2xl font-bold ${parseFloat(currentInvoice.netAmount || 0) >= 0 ? 'text-green-800' : 'text-orange-800'}`}>
-                          Rs. {Math.abs(parseFloat(currentInvoice.netAmount || 0)).toFixed(2)}
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                      <div className="flex items-center gap-6">
+                        <span className="text-lg font-bold text-gray-800">{MONTHS[selectedMonth - 1]} {selectedYear}</span>
+                        <span className="text-sm text-gray-500">Book: <span className="font-bold text-gray-800">{currentInvoice.bookNumber}</span></span>
+                        <span className="text-sm text-gray-700 font-medium">
+                          {currentInvoice.customerName}
+                          {currentInvoice.customerNameSinhala && <span className="text-gray-500 ml-1">({currentInvoice.customerNameSinhala})</span>}
                         </span>
                       </div>
+                    </div>
+
+                    {/* Tea Grades Summary */}
+                    <div className="mb-3">
+                      <table className="w-full text-sm">
+                        <thead className="bg-green-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-gray-600 font-semibold">Grade</th>
+                            <th className="px-3 py-2 text-right text-gray-600 font-semibold">Rate (Rs)</th>
+                            <th className="px-3 py-2 text-right text-gray-600 font-semibold">Quantity (Kg)</th>
+                            <th className="px-3 py-2 text-right text-gray-600 font-semibold">Amount (Rs)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-100">
+                            <td className="px-3 py-2"><span className="inline-flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span>Grade 1</span></td>
+                            <td className="px-3 py-2 text-right">{parseFloat(currentInvoice.grade1Rate || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 text-right">{parseFloat(currentInvoice.grade1Kg || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{parseFloat(currentInvoice.grade1Amount || 0).toFixed(2)}</td>
+                          </tr>
+                          <tr className="border-b border-gray-200">
+                            <td className="px-3 py-2"><span className="inline-flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full"></span>Grade 2</span></td>
+                            <td className="px-3 py-2 text-right">{parseFloat(currentInvoice.grade2Rate || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 text-right">{parseFloat(currentInvoice.grade2Kg || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{parseFloat(currentInvoice.grade2Amount || 0).toFixed(2)}</td>
+                          </tr>
+                          <tr className="bg-blue-50">
+                            <td className="px-3 py-2 font-bold text-blue-800">Total</td>
+                            <td className="px-3 py-2 text-right text-blue-600">-</td>
+                            <td className="px-3 py-2 text-right font-bold text-blue-800">{parseFloat(currentInvoice.totalKg || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 text-right font-bold text-blue-800">{parseFloat(currentInvoice.totalAmount || 0).toFixed(2)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Calendar and Deductions Side by Side */}
+                    <div className="flex gap-4 mb-3">
+                      {/* Daily Collection Calendar */}
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-gray-700 mb-1">Daily Collection</div>
+                        <div className="border border-gray-200 rounded p-2">
+                          {(() => {
+                            const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+                            const dates = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+                            return (
+                              <>
+                                <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-500 font-medium mb-1">
+                                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
+                                    <div key={i}>{day}</div>
+                                  ))}
+                                </div>
+                                <div className="grid grid-cols-7 gap-1">
+                                  {Array.from({ length: new Date(selectedYear, selectedMonth - 1, 1).getDay() }, (_, i) => (
+                                    <div key={`empty-${i}`} className="h-7"></div>
+                                  ))}
+                                  {dates.map(day => {
+                                    const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                    const collection = collectionsByDate[dateStr];
+                                    const totalKg = (collection?.grade1 || 0) + (collection?.grade2 || 0);
+                                    return (
+                                      <div
+                                        key={day}
+                                        className={`h-7 flex items-center justify-center text-xs rounded ${
+                                          totalKg > 0 ? 'bg-green-100 text-green-800 font-semibold' : 'bg-gray-50 text-gray-400'
+                                        }`}
+                                        title={totalKg > 0 ? `${day}: ${totalKg.toFixed(1)}kg` : ''}
+                                      >
+                                        {totalKg > 0 ? (
+                                          <span><span className="font-bold">{totalKg.toFixed(1)}</span><span className="text-[10px] text-gray-500 ml-0.5">/{day}</span></span>
+                                        ) : (
+                                          <span>{day}</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="text-right mt-2 pt-2 border-t border-gray-200 text-sm font-bold text-green-700">
+                                  Total: {parseFloat(currentInvoice.totalKg || 0).toFixed(2)} kg
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Deductions */}
+                      <div className="w-56 flex-shrink-0">
+                        <div className="text-sm font-semibold text-gray-700 mb-1">Deductions</div>
+                        <div className="border border-gray-200 rounded text-sm">
+                          {currentInvoice.lastMonthArrears > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Arrears</span><span>{parseFloat(currentInvoice.lastMonthArrears).toFixed(2)}</span></div>
+                          )}
+                          {currentInvoice.advanceAmount > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Advance</span><span>{parseFloat(currentInvoice.advanceAmount).toFixed(2)}</span></div>
+                          )}
+                          {currentInvoice.loanAmount > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Loan</span><span>{parseFloat(currentInvoice.loanAmount).toFixed(2)}</span></div>
+                          )}
+                          {currentInvoice.fertilizer1Amount > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Fertilizer 1</span><span>{parseFloat(currentInvoice.fertilizer1Amount).toFixed(2)}</span></div>
+                          )}
+                          {currentInvoice.fertilizer2Amount > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Fertilizer 2</span><span>{parseFloat(currentInvoice.fertilizer2Amount).toFixed(2)}</span></div>
+                          )}
+                          {currentInvoice.teaPacketsTotal > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Tea Packets</span><span>{parseFloat(currentInvoice.teaPacketsTotal).toFixed(2)}</span></div>
+                          )}
+                          {currentInvoice.agrochemicalsAmount > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Agrochemicals</span><span>{parseFloat(currentInvoice.agrochemicalsAmount).toFixed(2)}</span></div>
+                          )}
+                          {currentInvoice.transportDeduction > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Transport</span><span>{parseFloat(currentInvoice.transportDeduction).toFixed(2)}</span></div>
+                          )}
+                          {currentInvoice.stampFee > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Stamp Fee</span><span>{parseFloat(currentInvoice.stampFee).toFixed(2)}</span></div>
+                          )}
+                          {currentInvoice.otherDeductions > 0 && (
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Other</span><span>{parseFloat(currentInvoice.otherDeductions).toFixed(2)}</span></div>
+                          )}
+                          {parseFloat(currentInvoice.totalDeductions || 0) === 0 && (
+                            <div className="px-3 py-2 text-center text-gray-400">No deductions</div>
+                          )}
+                          <div className="flex justify-between px-3 py-1.5 bg-red-50 font-bold text-red-700">
+                            <span>Total</span><span>Rs. {parseFloat(currentInvoice.totalDeductions || 0).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Net Pay */}
+                    <div className={`px-4 py-3 rounded-lg flex justify-between items-center ${parseFloat(currentInvoice.netAmount || 0) >= 0 ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-orange-500 to-red-500'}`}>
+                      <span className="text-white text-base font-semibold">
+                        {parseFloat(currentInvoice.netAmount || 0) >= 0 ? 'Net Pay' : 'Balance Due'}
+                      </span>
+                      <span className="text-white text-2xl font-bold">
+                        Rs. {Math.abs(parseFloat(currentInvoice.netAmount || 0)).toFixed(2)}
+                      </span>
                     </div>
                   </>
                 ) : (
