@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Search, FileText, Download, Eye, List, User, RefreshCw, Zap, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, FileText, Download, Eye, List, User, RefreshCw, Zap, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Printer } from 'lucide-react';
 import { useCustomerContext } from '../contexts/CustomerContext';
 import {
   getCollectionsByBookNumberAndDateRange,
@@ -14,6 +14,7 @@ import {
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import PrintableInvoice from '../components/invoices/PrintableInvoice';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -57,6 +58,9 @@ const InvoicesPage = () => {
     message: '',
     onConfirm: null
   });
+
+  // Print state
+  const [printInvoice, setPrintInvoice] = useState(null);
 
   // Load all invoices when in list view
   useEffect(() => {
@@ -539,29 +543,31 @@ const InvoicesPage = () => {
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setActiveTab('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'list'
-                  ? 'bg-white text-green-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              <List className="w-4 h-4" />
-              All Invoices
-            </button>
-            <button
-              onClick={() => setActiveTab('single')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'single'
-                  ? 'bg-white text-green-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              <User className="w-4 h-4" />
-              Single Invoice
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'list'
+                    ? 'bg-white text-green-700 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                All Invoices
+              </button>
+              <button
+                onClick={() => setActiveTab('single')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'single'
+                    ? 'bg-white text-green-700 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                Single Invoice
+              </button>
+            </div>
           </div>
         </div>
 
@@ -776,6 +782,13 @@ const InvoicesPage = () => {
                               {summary.isGenerated && (
                                 <>
                                   <button
+                                    onClick={() => setPrintInvoice(summary.invoice)}
+                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                                    title="Print Invoice"
+                                  >
+                                    <Printer className="w-4 h-4" />
+                                  </button>
+                                  <button
                                     onClick={() => handleDownloadInvoice(summary.customer)}
                                     className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
                                     title="Download Invoice"
@@ -927,13 +940,24 @@ const InvoicesPage = () => {
                       </span>
                     )}
                   </div>
-                  <button
-                    onClick={handleRegenerateSingleInvoice}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 text-sm font-medium"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    {currentInvoice ? 'Regenerate' : 'Generate'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {currentInvoice && (
+                      <button
+                        onClick={() => setPrintInvoice(currentInvoice)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm font-medium"
+                      >
+                        <Printer className="w-4 h-4" />
+                        Print
+                      </button>
+                    )}
+                    <button
+                      onClick={handleRegenerateSingleInvoice}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 text-sm font-medium"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      {currentInvoice ? 'Regenerate' : 'Generate'}
+                    </button>
+                  </div>
                 </div>
 
                 {currentInvoice ? (
@@ -1157,6 +1181,13 @@ const InvoicesPage = () => {
           </>
         )}
       </div>
+
+      {/* Printable Invoice Modal */}
+      <PrintableInvoice
+        isOpen={!!printInvoice}
+        onClose={() => setPrintInvoice(null)}
+        invoice={printInvoice}
+      />
     </div>
   );
 };
