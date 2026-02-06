@@ -298,7 +298,10 @@ const DeductionsPage = () => {
                 type="text"
                 placeholder="Search customer..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowDropdown(true);
+                }}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                 className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 outline-none"
@@ -308,7 +311,8 @@ const DeductionsPage = () => {
                   {filteredCustomers.map(customer => (
                     <div
                       key={customer.id}
-                      onClick={() => {
+                      onMouseDown={(e) => {
+                        e.preventDefault();
                         setSelectedCustomer(customer);
                         setSearchTerm('');
                         setShowDropdown(false);
