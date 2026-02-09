@@ -121,9 +121,25 @@ public class InvoiceService {
         // Store collection details
         invoice.setCollectionDetails(detailsBuilder.toString());
 
-        // Set kg totals
+        // Set kg totals (original collected amounts)
         invoice.setGrade1Kg(grade1Kg);
         invoice.setGrade2Kg(grade2Kg);
+        BigDecimal totalKg = grade1Kg.add(grade2Kg);
+
+        // Get supply deduction percentage (default 4% if not set)
+        BigDecimal supplyDeductionPercentage = monthlyRate.getSupplyDeductionPercentage() != null ?
+                monthlyRate.getSupplyDeductionPercentage() : new BigDecimal("4.00");
+
+        // Calculate supply deduction in kg
+        BigDecimal supplyDeductionKg = totalKg.multiply(supplyDeductionPercentage)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        // Calculate payable kg (after deduction)
+        BigDecimal payableKg = totalKg.subtract(supplyDeductionKg);
+
+        invoice.setSupplyDeductionPercentage(supplyDeductionPercentage);
+        invoice.setSupplyDeductionKg(supplyDeductionKg);
+        invoice.setPayableKg(payableKg);
 
         // Set rates
         BigDecimal grade1Rate = monthlyRate.getGrade1Rate() != null ? monthlyRate.getGrade1Rate() : BigDecimal.ZERO;
@@ -131,23 +147,33 @@ public class InvoiceService {
         invoice.setGrade1Rate(grade1Rate);
         invoice.setGrade2Rate(grade2Rate);
 
-        // Calculate amounts
-        BigDecimal grade1Amount = grade1Kg.multiply(grade1Rate);
-        BigDecimal grade2Amount = grade2Kg.multiply(grade2Rate);
+        // Calculate amounts based on payable kg (proportionally reduced from each grade)
+        // Each grade is reduced by the same percentage
+        BigDecimal reductionMultiplier = BigDecimal.ONE.subtract(
+                supplyDeductionPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+
+        BigDecimal payableGrade1Kg = grade1Kg.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal payableGrade2Kg = grade2Kg.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal grade1Amount = payableGrade1Kg.multiply(grade1Rate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal grade2Amount = payableGrade2Kg.multiply(grade2Rate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalAmount = grade1Amount.add(grade2Amount);
 
         invoice.setGrade1Amount(grade1Amount);
         invoice.setGrade2Amount(grade2Amount);
         invoice.setTotalAmount(totalAmount);
 
-        // Calculate transport deduction
-        BigDecimal transportPercentage = monthlyRate.getTransportPercentage() != null ?
-                monthlyRate.getTransportPercentage() : BigDecimal.ZERO;
-        BigDecimal transportDeduction = totalAmount.multiply(transportPercentage)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        // Calculate transport deduction (per kg based on payable kg)
+        // Skip transport deduction if customer is transport exempt
+        BigDecimal transportRatePerKg = monthlyRate.getTransportRatePerKg() != null ?
+                monthlyRate.getTransportRatePerKg() : BigDecimal.ZERO;
+        Boolean isTransportExempt = customer.getTransportExempt() != null && customer.getTransportExempt();
+        BigDecimal transportDeduction = isTransportExempt ? BigDecimal.ZERO :
+                payableKg.multiply(transportRatePerKg).setScale(2, RoundingMode.HALF_UP);
 
-        invoice.setTransportPercentage(transportPercentage);
+        invoice.setTransportRatePerKg(transportRatePerKg);
         invoice.setTransportDeduction(transportDeduction);
+        invoice.setTransportExempt(isTransportExempt);
 
         // Set stamp fee
         invoice.setStampFee(monthlyRate.getStampFee());

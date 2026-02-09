@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, TruckIcon } from 'lucide-react';
 
 const CustomerTable = ({ customers, onEdit, onDelete, sortConfig, onSort, SortIcon }) => {
   return (
@@ -28,7 +28,17 @@ const CustomerTable = ({ customers, onEdit, onDelete, sortConfig, onSort, SortIc
         ) : (
           customers.map((customer) => (
             <div key={customer.id} className="grid grid-cols-6 gap-2 px-3 py-2 hover:bg-green-50 items-center text-sm">
-              <div className="font-medium text-gray-800 px-2">{customer.bookNumber}</div>
+              <div className="font-medium text-gray-800 px-2 flex items-center gap-1.5">
+                {customer.bookNumber}
+                {customer.transportExempt && (
+                  <span className="relative" title="Transport Exempt">
+                    <TruckIcon className="w-3.5 h-3.5 text-orange-500" />
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="w-4 h-0.5 bg-orange-500 rotate-45"></span>
+                    </span>
+                  </span>
+                )}
+              </div>
               <div className="text-gray-700 px-2">{customer.growerNameEnglish}</div>
               <div className="text-gray-700 px-2">{customer.growerNameSinhala}</div>
               <div className="text-gray-700 px-2">{customer.contactNumber || '-'}</div>

@@ -55,9 +55,15 @@ public class MonthlyRateController {
                 );
             }
 
-            if (rateData.get("transportPercentage") != null) {
-                rate.setTransportPercentage(
-                    java.math.BigDecimal.valueOf(Double.valueOf(rateData.get("transportPercentage").toString()))
+            if (rateData.get("supplyDeductionPercentage") != null) {
+                rate.setSupplyDeductionPercentage(
+                    java.math.BigDecimal.valueOf(Double.valueOf(rateData.get("supplyDeductionPercentage").toString()))
+                );
+            }
+
+            if (rateData.get("transportRatePerKg") != null) {
+                rate.setTransportRatePerKg(
+                    java.math.BigDecimal.valueOf(Double.valueOf(rateData.get("transportRatePerKg").toString()))
                 );
             }
 
@@ -100,9 +106,15 @@ public class MonthlyRateController {
                 );
             }
 
-            if (rateData.get("transportPercentage") != null) {
-                rate.setTransportPercentage(
-                    java.math.BigDecimal.valueOf(Double.valueOf(rateData.get("transportPercentage").toString()))
+            if (rateData.get("supplyDeductionPercentage") != null) {
+                rate.setSupplyDeductionPercentage(
+                    java.math.BigDecimal.valueOf(Double.valueOf(rateData.get("supplyDeductionPercentage").toString()))
+                );
+            }
+
+            if (rateData.get("transportRatePerKg") != null) {
+                rate.setTransportRatePerKg(
+                    java.math.BigDecimal.valueOf(Double.valueOf(rateData.get("transportRatePerKg").toString()))
                 );
             }
 

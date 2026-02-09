@@ -23,8 +23,11 @@ public class MonthlyRate {
     @Column(name = "tea_packet_price", precision = 10, scale = 2)
     private BigDecimal teaPacketPrice;
 
-    @Column(name = "transport_percentage", precision = 5, scale = 2)
-    private BigDecimal transportPercentage;
+    @Column(name = "supply_deduction_percentage", precision = 5, scale = 2)
+    private BigDecimal supplyDeductionPercentage; // Default 4% - deducted from total kg before calculating amount
+
+    @Column(name = "transport_rate_per_kg", precision = 10, scale = 2)
+    private BigDecimal transportRatePerKg; // Transport cost per kg (applied to payable kg)
 
     @Column(name = "stamp_fee", precision = 10, scale = 2)
     private BigDecimal stampFee;

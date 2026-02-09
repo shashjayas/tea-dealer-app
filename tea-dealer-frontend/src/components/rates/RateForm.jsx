@@ -31,23 +31,49 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
           </div>
         </div>
 
-        {/* Transport Percentage */}
+        {/* Supply Deduction Percentage */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Transport (%)
+            Supply Deduction (%)
           </label>
           <div className="relative">
             <input
               type="number"
               step="0.01"
-              value={formData.transportPercentage || ''}
-              onChange={(e) => onChange({ ...formData, transportPercentage: e.target.value })}
+              value={formData.supplyDeductionPercentage || ''}
+              onChange={(e) => onChange({ ...formData, supplyDeductionPercentage: e.target.value })}
+              className="w-full px-3 py-1.5 pr-8 border border-orange-300 rounded-md focus:ring-1 focus:ring-orange-500 outline-none bg-orange-50 text-sm"
+              placeholder="4.00"
+            />
+            {formData.supplyDeductionPercentage && (
+              <button
+                onClick={() => onChange({ ...formData, supplyDeductionPercentage: '' })}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                title="Clear field"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Transport Rate Per Kg */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Transport (Rs./kg)
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              step="0.01"
+              value={formData.transportRatePerKg || ''}
+              onChange={(e) => onChange({ ...formData, transportRatePerKg: e.target.value })}
               className="w-full px-3 py-1.5 pr-8 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 outline-none text-sm"
               placeholder="0.00"
             />
-            {formData.transportPercentage && (
+            {formData.transportRatePerKg && (
               <button
-                onClick={() => onChange({ ...formData, transportPercentage: '' })}
+                onClick={() => onChange({ ...formData, transportRatePerKg: '' })}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
                 title="Clear field"
               >

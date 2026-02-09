@@ -17,10 +17,12 @@ export const apiCall = async (endpoint, options = {}) => {
       // Try to get error message from response body
       try {
         const errorData = await response.json();
-        const errorMessage = errorData.error || errorData.message || response.statusText;
-        throw new Error(`API Error: ${errorMessage}`);
+        const errorMessage = errorData.error || errorData.message || response.statusText || `${response.status}`;
+        throw new Error(`API Error (${response.status}): ${errorMessage}`);
       } catch (e) {
-        throw new Error(`API Error: ${response.statusText}`);
+        // If JSON parsing fails, use status code and text
+        const statusText = response.statusText || (response.status === 404 ? 'Not Found' : 'Error');
+        throw new Error(`API Error (${response.status}): ${statusText}`);
       }
     }
 

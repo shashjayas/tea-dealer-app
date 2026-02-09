@@ -23,7 +23,8 @@ const CustomerManagementPage = () => {
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, customerId: null, hasCollections: false });
   const [formData, setFormData] = useState({
     bookNumber: '', growerNameSinhala: '', growerNameEnglish: '',
-    address: '', nic: '', landName: '', contactNumber: '', route: ''
+    address: '', nic: '', landName: '', contactNumber: '', route: '',
+    transportExempt: false
   });
 
   const { importFile, importPreview, importErrors, downloadTemplate, processFile, resetImport } = useCSVImport();
@@ -61,7 +62,8 @@ const CustomerManagementPage = () => {
       nic: customer.nic,
       landName: customer.landName,
       contactNumber: customer.contactNumber,
-      route: customer.route
+      route: customer.route,
+      transportExempt: customer.transportExempt || false
     });
     setShowForm(true);
   };
@@ -96,7 +98,8 @@ const CustomerManagementPage = () => {
   const resetForm = () => {
     setFormData({
       bookNumber: '', growerNameSinhala: '', growerNameEnglish: '',
-      address: '', nic: '', landName: '', contactNumber: '', route: ''
+      address: '', nic: '', landName: '', contactNumber: '', route: '',
+      transportExempt: false
     });
     setEditingCustomer(null);
   };

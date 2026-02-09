@@ -1,5 +1,5 @@
 import React from 'react';
-import { Save, XCircle } from 'lucide-react';
+import { Save, XCircle, Truck } from 'lucide-react';
 
 const CustomerForm = ({ formData, onChange, onSubmit, onCancel, loading, isEditing }) => {
   const isBookNumberEmpty = !formData.bookNumber?.trim();
@@ -83,7 +83,7 @@ const CustomerForm = ({ formData, onChange, onSubmit, onCancel, loading, isEditi
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">NIC Number</label>
               <input
@@ -101,6 +101,22 @@ const CustomerForm = ({ formData, onChange, onSubmit, onCancel, loading, isEditi
                 onChange={(e) => onChange({ ...formData, landName: e.target.value })}
                 className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <Truck className="w-3.5 h-3.5" />
+                Transport Fee
+              </label>
+              <select
+                value={formData.transportExempt ? 'exempt' : 'apply'}
+                onChange={(e) => onChange({ ...formData, transportExempt: e.target.value === 'exempt' })}
+                className={`w-full px-3 py-1.5 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm ${
+                  formData.transportExempt ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-gray-300'
+                }`}
+              >
+                <option value="apply">Apply Transport</option>
+                <option value="exempt">Exempt</option>
+              </select>
             </div>
           </div>
           <div>

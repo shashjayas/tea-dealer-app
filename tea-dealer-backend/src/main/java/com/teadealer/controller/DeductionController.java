@@ -99,28 +99,57 @@ public class DeductionController {
                 }
             }
 
-            // Calculate total amount
+            // Calculate total kg
+            BigDecimal totalKg = grade1Total.add(grade2Total);
+
+            // Get supply deduction percentage (default 4% if not set)
+            BigDecimal supplyDeductionPercentage = monthlyRate.getSupplyDeductionPercentage() != null ?
+                    monthlyRate.getSupplyDeductionPercentage() : new BigDecimal("4.00");
+
+            // Calculate supply deduction in kg
+            BigDecimal supplyDeductionKg = totalKg.multiply(supplyDeductionPercentage)
+                    .divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+
+            // Calculate payable kg (after deduction)
+            BigDecimal payableKg = totalKg.subtract(supplyDeductionKg);
+
+            // Calculate amounts based on payable kg (proportionally reduced from each grade)
             BigDecimal grade1Rate = monthlyRate.getGrade1Rate() != null ? monthlyRate.getGrade1Rate() : BigDecimal.ZERO;
             BigDecimal grade2Rate = monthlyRate.getGrade2Rate() != null ? monthlyRate.getGrade2Rate() : BigDecimal.ZERO;
 
-            BigDecimal grade1Amount = grade1Total.multiply(grade1Rate);
-            BigDecimal grade2Amount = grade2Total.multiply(grade2Rate);
+            BigDecimal reductionMultiplier = BigDecimal.ONE.subtract(
+                    supplyDeductionPercentage.divide(BigDecimal.valueOf(100), 4, BigDecimal.ROUND_HALF_UP));
+
+            BigDecimal payableGrade1Kg = grade1Total.multiply(reductionMultiplier).setScale(2, BigDecimal.ROUND_HALF_UP);
+            BigDecimal payableGrade2Kg = grade2Total.multiply(reductionMultiplier).setScale(2, BigDecimal.ROUND_HALF_UP);
+
+            BigDecimal grade1Amount = payableGrade1Kg.multiply(grade1Rate).setScale(2, BigDecimal.ROUND_HALF_UP);
+            BigDecimal grade2Amount = payableGrade2Kg.multiply(grade2Rate).setScale(2, BigDecimal.ROUND_HALF_UP);
             BigDecimal totalAmount = grade1Amount.add(grade2Amount);
 
-            // Calculate transport deduction
-            BigDecimal transportPercentage = monthlyRate.getTransportPercentage() != null ? monthlyRate.getTransportPercentage() : BigDecimal.ZERO;
-            BigDecimal transportDeduction = totalAmount.multiply(transportPercentage).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+            // Calculate transport deduction (per kg based on payable kg)
+            // Skip transport deduction if customer is transport exempt
+            BigDecimal transportRatePerKg = monthlyRate.getTransportRatePerKg() != null ?
+                    monthlyRate.getTransportRatePerKg() : BigDecimal.ZERO;
+            Boolean isTransportExempt = customer.getTransportExempt() != null && customer.getTransportExempt();
+            BigDecimal transportDeduction = isTransportExempt ? BigDecimal.ZERO :
+                    payableKg.multiply(transportRatePerKg).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             Map<String, Object> result = new HashMap<>();
             result.put("grade1Kg", grade1Total);
             result.put("grade2Kg", grade2Total);
+            result.put("totalKg", totalKg);
+            result.put("supplyDeductionPercentage", supplyDeductionPercentage);
+            result.put("supplyDeductionKg", supplyDeductionKg);
+            result.put("payableKg", payableKg);
             result.put("grade1Rate", grade1Rate);
             result.put("grade2Rate", grade2Rate);
             result.put("grade1Amount", grade1Amount);
             result.put("grade2Amount", grade2Amount);
             result.put("totalAmount", totalAmount);
-            result.put("transportPercentage", transportPercentage);
+            result.put("transportRatePerKg", transportRatePerKg);
             result.put("transportDeduction", transportDeduction);
+            result.put("transportExempt", isTransportExempt);
             result.put("stampFee", monthlyRate.getStampFee() != null ? monthlyRate.getStampFee() : BigDecimal.ZERO);
             result.put("teaPacketPrice", monthlyRate.getTeaPacketPrice() != null ? monthlyRate.getTeaPacketPrice() : BigDecimal.ZERO);
 
@@ -160,8 +189,10 @@ public class DeductionController {
             deduction.setAdvanceAmount(deductionData.get("advanceAmount") != null ?
                 new BigDecimal(deductionData.get("advanceAmount").toString()) : null);
 
-            deduction.setAdvanceDate(deductionData.get("advanceDate") != null ?
-                LocalDate.parse(deductionData.get("advanceDate").toString()) : null);
+            // Store advance entries as JSON string
+            if (deductionData.get("advanceEntries") != null) {
+                deduction.setAdvanceEntries(deductionData.get("advanceEntries").toString());
+            }
 
             deduction.setLoanAmount(deductionData.get("loanAmount") != null ?
                 new BigDecimal(deductionData.get("loanAmount").toString()) : null);

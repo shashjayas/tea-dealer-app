@@ -36,6 +36,10 @@ public class Customer {
     @Column(name = "route")
     private String route;
 
+    // If true, transport fee is not charged for this customer
+    @Column(name = "transport_exempt", nullable = false)
+    private Boolean transportExempt = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
