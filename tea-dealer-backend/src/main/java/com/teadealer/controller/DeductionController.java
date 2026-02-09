@@ -128,10 +128,12 @@ public class DeductionController {
             BigDecimal totalAmount = grade1Amount.add(grade2Amount);
 
             // Calculate transport deduction (per kg based on payable kg)
+            // Skip transport deduction if customer is transport exempt
             BigDecimal transportRatePerKg = monthlyRate.getTransportRatePerKg() != null ?
                     monthlyRate.getTransportRatePerKg() : BigDecimal.ZERO;
-            BigDecimal transportDeduction = payableKg.multiply(transportRatePerKg)
-                    .setScale(2, BigDecimal.ROUND_HALF_UP);
+            Boolean isTransportExempt = customer.getTransportExempt() != null && customer.getTransportExempt();
+            BigDecimal transportDeduction = isTransportExempt ? BigDecimal.ZERO :
+                    payableKg.multiply(transportRatePerKg).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             Map<String, Object> result = new HashMap<>();
             result.put("grade1Kg", grade1Total);
@@ -147,6 +149,7 @@ public class DeductionController {
             result.put("totalAmount", totalAmount);
             result.put("transportRatePerKg", transportRatePerKg);
             result.put("transportDeduction", transportDeduction);
+            result.put("transportExempt", isTransportExempt);
             result.put("stampFee", monthlyRate.getStampFee() != null ? monthlyRate.getStampFee() : BigDecimal.ZERO);
             result.put("teaPacketPrice", monthlyRate.getTeaPacketPrice() != null ? monthlyRate.getTeaPacketPrice() : BigDecimal.ZERO);
 

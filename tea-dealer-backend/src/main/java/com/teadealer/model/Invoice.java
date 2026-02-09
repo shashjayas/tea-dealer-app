@@ -101,6 +101,9 @@ public class Invoice {
     @Column(name = "transport_deduction", precision = 10, scale = 2)
     private BigDecimal transportDeduction;
 
+    @Column(name = "transport_exempt")
+    private Boolean transportExempt = false;
+
     @Column(name = "stamp_fee", precision = 10, scale = 2)
     private BigDecimal stampFee;
 

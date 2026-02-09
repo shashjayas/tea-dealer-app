@@ -164,13 +164,16 @@ public class InvoiceService {
         invoice.setTotalAmount(totalAmount);
 
         // Calculate transport deduction (per kg based on payable kg)
+        // Skip transport deduction if customer is transport exempt
         BigDecimal transportRatePerKg = monthlyRate.getTransportRatePerKg() != null ?
                 monthlyRate.getTransportRatePerKg() : BigDecimal.ZERO;
-        BigDecimal transportDeduction = payableKg.multiply(transportRatePerKg)
-                .setScale(2, RoundingMode.HALF_UP);
+        Boolean isTransportExempt = customer.getTransportExempt() != null && customer.getTransportExempt();
+        BigDecimal transportDeduction = isTransportExempt ? BigDecimal.ZERO :
+                payableKg.multiply(transportRatePerKg).setScale(2, RoundingMode.HALF_UP);
 
         invoice.setTransportRatePerKg(transportRatePerKg);
         invoice.setTransportDeduction(transportDeduction);
+        invoice.setTransportExempt(isTransportExempt);
 
         // Set stamp fee
         invoice.setStampFee(monthlyRate.getStampFee());

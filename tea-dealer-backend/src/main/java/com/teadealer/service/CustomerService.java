@@ -50,6 +50,7 @@ public class CustomerService {
         customer.setLandName(customerDetails.getLandName());
         customer.setContactNumber(customerDetails.getContactNumber());
         customer.setRoute(customerDetails.getRoute());
+        customer.setTransportExempt(customerDetails.getTransportExempt() != null ? customerDetails.getTransportExempt() : false);
 
         return customerRepository.save(customer);
     }

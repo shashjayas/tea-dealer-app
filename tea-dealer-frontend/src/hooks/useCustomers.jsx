@@ -11,7 +11,11 @@ export const useCustomers = () => {
     setLoading(true);
     try {
       const data = await getCustomers();
-      setCustomers(data);
+      // Sort customers by book number (natural alphanumeric sort)
+      const sortedData = data.sort((a, b) =>
+        a.bookNumber.localeCompare(b.bookNumber, undefined, { numeric: true, sensitivity: 'base' })
+      );
+      setCustomers(sortedData);
       setError(null);
     } catch (err) {
       setError('Error fetching customers');
@@ -25,7 +29,12 @@ export const useCustomers = () => {
     setLoading(true);
     try {
       const newCustomer = await createCustomer(customerData);
-      setCustomers(prev => [...prev, newCustomer]);
+      setCustomers(prev => {
+        const updated = [...prev, newCustomer];
+        return updated.sort((a, b) =>
+          a.bookNumber.localeCompare(b.bookNumber, undefined, { numeric: true, sensitivity: 'base' })
+        );
+      });
       setRefreshTrigger(prev => prev + 1);
       return { success: true };
     } catch (err) {
@@ -40,9 +49,12 @@ export const useCustomers = () => {
     setLoading(true);
     try {
       const updatedCustomer = await updateCustomer(id, customerData);
-      setCustomers(prev => 
-        prev.map(customer => customer.id === id ? updatedCustomer : customer)
-      );
+      setCustomers(prev => {
+        const updated = prev.map(customer => customer.id === id ? updatedCustomer : customer);
+        return updated.sort((a, b) =>
+          a.bookNumber.localeCompare(b.bookNumber, undefined, { numeric: true, sensitivity: 'base' })
+        );
+      });
       setRefreshTrigger(prev => prev + 1);
       return { success: true };
     } catch (err) {

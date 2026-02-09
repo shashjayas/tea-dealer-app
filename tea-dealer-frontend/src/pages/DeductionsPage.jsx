@@ -107,6 +107,9 @@ const DeductionsPage = () => {
 
   const loadData = async () => {
     setLoading(true);
+    // Reset form immediately when switching customers to prevent stale data
+    resetDeductionsForm();
+
     try {
       // Calculate monthly totals
       const totals = await calculateMonthlyTotals(selectedCustomer.id, selectedYear, selectedMonth);
@@ -119,22 +122,18 @@ const DeductionsPage = () => {
         selectedMonth
       );
 
-      console.log('Loaded deduction:', existingDeduction);
-      console.log('advanceEntries from DB:', existingDeduction?.advanceEntries, 'type:', typeof existingDeduction?.advanceEntries);
-
       if (existingDeduction) {
         // Parse advance entries from JSON
         let advanceEntries = [];
         try {
           if (existingDeduction.advanceEntries) {
-            console.log('Parsing advanceEntries:', existingDeduction.advanceEntries);
             advanceEntries = typeof existingDeduction.advanceEntries === 'string'
               ? JSON.parse(existingDeduction.advanceEntries)
               : existingDeduction.advanceEntries;
-            console.log('Parsed advanceEntries:', advanceEntries);
           }
         } catch (e) {
           console.error('Error parsing advance entries:', e);
+          advanceEntries = [];
         }
 
         setDeductions({
@@ -152,14 +151,14 @@ const DeductionsPage = () => {
           otherDeductions: existingDeduction.otherDeductions || '',
           otherDeductionsNote: existingDeduction.otherDeductionsNote || '',
         });
-      } else {
-        // Reset form for new entry
-        console.log('No existing deduction, resetting form');
-        resetDeductionsForm();
       }
+      // If no existing deduction, form is already reset above
     } catch (error) {
       console.error('Error loading data:', error);
-      showToast('Error loading data', 'error');
+      // Don't show error toast for normal "not found" cases
+      if (!error.message?.includes('404') && !error.message?.includes('Not Found')) {
+        showToast('Error loading data', 'error');
+      }
     } finally {
       setLoading(false);
     }
