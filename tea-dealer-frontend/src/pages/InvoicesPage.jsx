@@ -981,7 +981,7 @@ const InvoicesPage = () => {
                           <tr>
                             <th className="px-3 py-2 text-left text-gray-600 font-semibold">Grade</th>
                             <th className="px-3 py-2 text-right text-gray-600 font-semibold">Rate (Rs)</th>
-                            <th className="px-3 py-2 text-right text-gray-600 font-semibold">Quantity (Kg)</th>
+                            <th className="px-3 py-2 text-right text-gray-600 font-semibold">Collected (Kg)</th>
                             <th className="px-3 py-2 text-right text-gray-600 font-semibold">Amount (Rs)</th>
                           </tr>
                         </thead>
@@ -998,10 +998,26 @@ const InvoicesPage = () => {
                             <td className="px-3 py-2 text-right">{parseFloat(currentInvoice.grade2Kg || 0).toFixed(2)}</td>
                             <td className="px-3 py-2 text-right font-semibold">{parseFloat(currentInvoice.grade2Amount || 0).toFixed(2)}</td>
                           </tr>
+                          <tr className="border-b border-gray-100 bg-gray-50">
+                            <td className="px-3 py-2 text-gray-600">Total Collected</td>
+                            <td className="px-3 py-2 text-right text-gray-500">-</td>
+                            <td className="px-3 py-2 text-right font-medium text-gray-700">{parseFloat(currentInvoice.totalKg || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 text-right text-gray-500">-</td>
+                          </tr>
+                          <tr className="border-b border-gray-100 bg-orange-50">
+                            <td className="px-3 py-2 text-orange-700">
+                              Supply Deduction ({parseFloat(currentInvoice.supplyDeductionPercentage || 0).toFixed(1)}%)
+                            </td>
+                            <td className="px-3 py-2 text-right text-orange-500">-</td>
+                            <td className="px-3 py-2 text-right font-medium text-orange-700">
+                              -{parseFloat(currentInvoice.supplyDeductionKg || 0).toFixed(2)}
+                            </td>
+                            <td className="px-3 py-2 text-right text-orange-500">-</td>
+                          </tr>
                           <tr className="bg-blue-50">
-                            <td className="px-3 py-2 font-bold text-blue-800">Total</td>
+                            <td className="px-3 py-2 font-bold text-blue-800">Payable</td>
                             <td className="px-3 py-2 text-right text-blue-600">-</td>
-                            <td className="px-3 py-2 text-right font-bold text-blue-800">{parseFloat(currentInvoice.totalKg || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 text-right font-bold text-blue-800">{parseFloat(currentInvoice.payableKg || 0).toFixed(2)}</td>
                             <td className="px-3 py-2 text-right font-bold text-blue-800">{parseFloat(currentInvoice.totalAmount || 0).toFixed(2)}</td>
                           </tr>
                         </tbody>
@@ -1084,7 +1100,15 @@ const InvoicesPage = () => {
                             <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Agrochemicals</span><span>{parseFloat(currentInvoice.agrochemicalsAmount).toFixed(2)}</span></div>
                           )}
                           {currentInvoice.transportDeduction > 0 && (
-                            <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Transport</span><span>{parseFloat(currentInvoice.transportDeduction).toFixed(2)}</span></div>
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-100">
+                              <span className="text-gray-600">
+                                Transport
+                                {currentInvoice.transportRatePerKg > 0 && (
+                                  <span className="text-xs text-gray-400 ml-1">(@{parseFloat(currentInvoice.transportRatePerKg).toFixed(2)}/kg)</span>
+                                )}
+                              </span>
+                              <span>{parseFloat(currentInvoice.transportDeduction).toFixed(2)}</span>
+                            </div>
                           )}
                           {currentInvoice.stampFee > 0 && (
                             <div className="flex justify-between px-3 py-1 border-b border-gray-100"><span className="text-gray-600">Stamp Fee</span><span>{parseFloat(currentInvoice.stampFee).toFixed(2)}</span></div>

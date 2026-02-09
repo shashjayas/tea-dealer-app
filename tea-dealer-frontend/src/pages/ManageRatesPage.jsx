@@ -33,7 +33,8 @@ const ManageRatesPage = () => {
     year: selectedYear,
     month: selectedMonth,
     teaPacketPrice: '',
-    transportPercentage: '',
+    supplyDeductionPercentage: '',
+    transportRatePerKg: '',
     stampFee: '',
     grade1Rate: '',
     grade2Rate: '',
@@ -52,7 +53,8 @@ const ManageRatesPage = () => {
         year: selectedYear,
         month: selectedMonth,
         teaPacketPrice: currentRate.teaPacketPrice || '',
-        transportPercentage: currentRate.transportPercentage || '',
+        supplyDeductionPercentage: currentRate.supplyDeductionPercentage || '',
+        transportRatePerKg: currentRate.transportRatePerKg || '',
         stampFee: currentRate.stampFee || '',
         grade1Rate: currentRate.grade1Rate || '',
         grade2Rate: currentRate.grade2Rate || '',
@@ -62,7 +64,8 @@ const ManageRatesPage = () => {
         year: selectedYear,
         month: selectedMonth,
         teaPacketPrice: '',
-        transportPercentage: '',
+        supplyDeductionPercentage: '',
+        transportRatePerKg: '',
         stampFee: '',
         grade1Rate: '',
         grade2Rate: '',
@@ -88,8 +91,11 @@ const ManageRatesPage = () => {
     if (formData.teaPacketPrice && formData.teaPacketPrice !== '') {
       cleanData.teaPacketPrice = parseFloat(formData.teaPacketPrice);
     }
-    if (formData.transportPercentage && formData.transportPercentage !== '') {
-      cleanData.transportPercentage = parseFloat(formData.transportPercentage);
+    if (formData.supplyDeductionPercentage && formData.supplyDeductionPercentage !== '') {
+      cleanData.supplyDeductionPercentage = parseFloat(formData.supplyDeductionPercentage);
+    }
+    if (formData.transportRatePerKg && formData.transportRatePerKg !== '') {
+      cleanData.transportRatePerKg = parseFloat(formData.transportRatePerKg);
     }
     if (formData.stampFee && formData.stampFee !== '') {
       cleanData.stampFee = parseFloat(formData.stampFee);

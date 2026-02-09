@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Save, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, Search, Plus, Trash2, Calendar } from 'lucide-react';
 import { useCustomerContext } from '../contexts/CustomerContext';
 import { getDeductionByCustomerAndPeriod, calculateMonthlyTotals, saveDeduction } from '../services/deductionService';
 import { useToast } from '../hooks/useToast';
@@ -22,6 +22,11 @@ const DeductionsPage = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // New advance entry input state
+  const [newAdvanceAmount, setNewAdvanceAmount] = useState('');
+  const [newAdvanceDate, setNewAdvanceDate] = useState('');
+  const [showAdvanceDatePicker, setShowAdvanceDatePicker] = useState(false);
+
   // Set first customer as default
   useEffect(() => {
     if (customers.length > 0 && !selectedCustomer) {
@@ -31,8 +36,7 @@ const DeductionsPage = () => {
 
   const [deductions, setDeductions] = useState({
     lastMonthArrears: '',
-    advanceAmount: '',
-    advanceDate: '',
+    advanceEntries: [], // [{date, amount}, ...]
     loanAmount: '',
     loanDate: '',
     fertilizer1Amount: '',
@@ -76,8 +80,7 @@ const DeductionsPage = () => {
   const resetDeductionsForm = () => {
     setDeductions({
       lastMonthArrears: '',
-      advanceAmount: '',
-      advanceDate: '',
+      advanceEntries: [],
       loanAmount: '',
       loanDate: '',
       fertilizer1Amount: '',
@@ -109,38 +112,49 @@ const DeductionsPage = () => {
       const totals = await calculateMonthlyTotals(selectedCustomer.id, selectedYear, selectedMonth);
       setMonthlyTotals(totals);
 
-      // Load existing deductions
-      try {
-        const existingDeduction = await getDeductionByCustomerAndPeriod(
-          selectedCustomer.id,
-          selectedYear,
-          selectedMonth
-        );
+      // Load existing deductions (returns null if not found)
+      const existingDeduction = await getDeductionByCustomerAndPeriod(
+        selectedCustomer.id,
+        selectedYear,
+        selectedMonth
+      );
 
-        if (existingDeduction) {
-          setDeductions({
-            lastMonthArrears: existingDeduction.lastMonthArrears || '',
-            advanceAmount: existingDeduction.advanceAmount || '',
-            advanceDate: existingDeduction.advanceDate || '',
-            loanAmount: existingDeduction.loanAmount || '',
-            loanDate: existingDeduction.loanDate || '',
-            fertilizer1Amount: existingDeduction.fertilizer1Amount || '',
-            fertilizer1Date: existingDeduction.fertilizer1Date || '',
-            fertilizer2Amount: existingDeduction.fertilizer2Amount || '',
-            fertilizer2Date: existingDeduction.fertilizer2Date || '',
-            teaPacketsCount: existingDeduction.teaPacketsCount || '',
-            agrochemicalsAmount: existingDeduction.agrochemicalsAmount || '',
-            agrochemicalsDate: existingDeduction.agrochemicalsDate || '',
-            otherDeductions: existingDeduction.otherDeductions || '',
-            otherDeductionsNote: existingDeduction.otherDeductionsNote || '',
-          });
-        } else {
-          // Reset form for new entry
-          resetDeductionsForm();
+      console.log('Loaded deduction:', existingDeduction);
+      console.log('advanceEntries from DB:', existingDeduction?.advanceEntries, 'type:', typeof existingDeduction?.advanceEntries);
+
+      if (existingDeduction) {
+        // Parse advance entries from JSON
+        let advanceEntries = [];
+        try {
+          if (existingDeduction.advanceEntries) {
+            console.log('Parsing advanceEntries:', existingDeduction.advanceEntries);
+            advanceEntries = typeof existingDeduction.advanceEntries === 'string'
+              ? JSON.parse(existingDeduction.advanceEntries)
+              : existingDeduction.advanceEntries;
+            console.log('Parsed advanceEntries:', advanceEntries);
+          }
+        } catch (e) {
+          console.error('Error parsing advance entries:', e);
         }
-      } catch (error) {
-        // No existing deduction found - reset form
-        console.log('No existing deduction found, resetting form');
+
+        setDeductions({
+          lastMonthArrears: existingDeduction.lastMonthArrears || '',
+          advanceEntries: advanceEntries,
+          loanAmount: existingDeduction.loanAmount || '',
+          loanDate: existingDeduction.loanDate || '',
+          fertilizer1Amount: existingDeduction.fertilizer1Amount || '',
+          fertilizer1Date: existingDeduction.fertilizer1Date || '',
+          fertilizer2Amount: existingDeduction.fertilizer2Amount || '',
+          fertilizer2Date: existingDeduction.fertilizer2Date || '',
+          teaPacketsCount: existingDeduction.teaPacketsCount || '',
+          agrochemicalsAmount: existingDeduction.agrochemicalsAmount || '',
+          agrochemicalsDate: existingDeduction.agrochemicalsDate || '',
+          otherDeductions: existingDeduction.otherDeductions || '',
+          otherDeductionsNote: existingDeduction.otherDeductionsNote || '',
+        });
+      } else {
+        // Reset form for new entry
+        console.log('No existing deduction, resetting form');
         resetDeductionsForm();
       }
     } catch (error) {
@@ -176,10 +190,40 @@ const DeductionsPage = () => {
     return parseFloat(deductions.teaPacketsCount) * parseFloat(monthlyTotals.teaPacketPrice);
   };
 
+  // Calculate total from advance entries
+  const calculateAdvanceTotal = () => {
+    return deductions.advanceEntries.reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0);
+  };
+
+  // Advance entry management functions
+  const addAdvanceEntry = () => {
+    if (!newAdvanceAmount || parseFloat(newAdvanceAmount) <= 0) return;
+
+    // Use selected date or default to today
+    const entryDate = newAdvanceDate || new Date().toISOString().split('T')[0];
+
+    setDeductions({
+      ...deductions,
+      advanceEntries: [...deductions.advanceEntries, { date: entryDate, amount: newAdvanceAmount }]
+    });
+
+    // Reset input fields
+    setNewAdvanceAmount('');
+    setNewAdvanceDate('');
+    setShowAdvanceDatePicker(false);
+  };
+
+  const removeAdvanceEntry = (index) => {
+    setDeductions({
+      ...deductions,
+      advanceEntries: deductions.advanceEntries.filter((_, i) => i !== index)
+    });
+  };
+
   const calculateTotalDeductions = () => {
     let total = 0;
     if (deductions.lastMonthArrears) total += parseFloat(deductions.lastMonthArrears);
-    if (deductions.advanceAmount) total += parseFloat(deductions.advanceAmount);
+    total += calculateAdvanceTotal();
     if (deductions.loanAmount) total += parseFloat(deductions.loanAmount);
     if (deductions.fertilizer1Amount) total += parseFloat(deductions.fertilizer1Amount);
     if (deductions.fertilizer2Amount) total += parseFloat(deductions.fertilizer2Amount);
@@ -207,8 +251,8 @@ const DeductionsPage = () => {
         month: selectedMonth,
         monthTotalAmount: monthlyTotals?.totalAmount || 0,
         lastMonthArrears: deductions.lastMonthArrears !== '' ? deductions.lastMonthArrears : null,
-        advanceAmount: deductions.advanceAmount !== '' ? deductions.advanceAmount : null,
-        advanceDate: deductions.advanceDate !== '' ? deductions.advanceDate : null,
+        advanceAmount: calculateAdvanceTotal() || null,
+        advanceEntries: JSON.stringify(deductions.advanceEntries),
         loanAmount: deductions.loanAmount !== '' ? deductions.loanAmount : null,
         loanDate: deductions.loanDate !== '' ? deductions.loanDate : null,
         fertilizer1Amount: deductions.fertilizer1Amount !== '' ? deductions.fertilizer1Amount : null,
@@ -226,6 +270,7 @@ const DeductionsPage = () => {
       };
 
       console.log('Saving deduction data:', deductionData);
+      console.log('advanceEntries being saved:', deductions.advanceEntries, '-> stringified:', JSON.stringify(deductions.advanceEntries));
       await saveDeduction(deductionData);
       showToast('Deductions saved successfully', 'success');
     } catch (error) {
@@ -390,7 +435,13 @@ const DeductionsPage = () => {
                 <div className="text-xs text-blue-600 mb-0.5">This Month Total</div>
                 <div className="text-base font-bold text-blue-800">Rs. {parseFloat(monthlyTotals.totalAmount || 0).toFixed(2)}</div>
                 <div className="text-xs text-blue-500">
-                  G1: {parseFloat(monthlyTotals.grade1Kg || 0).toFixed(1)}kg | G2: {parseFloat(monthlyTotals.grade2Kg || 0).toFixed(1)}kg
+                  Collected: {parseFloat(monthlyTotals.totalKg || 0).toFixed(1)}kg
+                  {monthlyTotals.supplyDeductionKg > 0 && (
+                    <span className="text-orange-500 ml-1">
+                      (-{parseFloat(monthlyTotals.supplyDeductionKg).toFixed(1)}kg)
+                    </span>
+                  )}
+                  {' = '}Payable: {parseFloat(monthlyTotals.payableKg || 0).toFixed(1)}kg
                 </div>
               </div>
 
@@ -408,174 +459,181 @@ const DeductionsPage = () => {
             </div>
 
             {/* Deductions Form */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-3">
               {/* Last Month Arrears */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Last Month Arrears (Rs.)</label>
+                <label className="block text-xs font-medium text-rose-700 mb-1">Arrears (Rs.)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={deductions.lastMonthArrears}
                   onChange={(e) => setDeductions({...deductions, lastMonthArrears: e.target.value})}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
+                  className="w-full px-2 py-1 border border-rose-300 rounded focus:ring-1 focus:ring-rose-500 outline-none text-sm bg-rose-50"
                   placeholder="0.00"
                 />
               </div>
 
-              {/* Advance with Date */}
+              {/* Advance with Add button */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Advance</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={deductions.advanceAmount}
-                    onChange={(e) => setDeductions({...deductions, advanceAmount: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                    placeholder="Amount"
-                  />
-                  <input
-                    type="date"
-                    value={deductions.advanceDate}
-                    onChange={(e) => setDeductions({...deductions, advanceDate: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                  />
+                <label className="block text-xs font-medium text-blue-700 mb-1">
+                  Advance (Rs.)
+                  {calculateAdvanceTotal() > 0 && (
+                    <span className="text-blue-500 ml-1">({deductions.advanceEntries.length} entries)</span>
+                  )}
+                </label>
+                <div className="flex gap-1">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newAdvanceAmount}
+                      onChange={(e) => setNewAdvanceAmount(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && addAdvanceEntry()}
+                      className="w-full px-2 py-1 pr-7 border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-blue-50"
+                      placeholder="0.00"
+                    />
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAdvanceDatePicker(!showAdvanceDatePicker)}
+                        className={`p-0.5 rounded hover:bg-blue-200 ${newAdvanceDate ? 'text-blue-600' : 'text-gray-400'}`}
+                        title={newAdvanceDate || 'Select date (optional)'}
+                      >
+                        <Calendar className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {showAdvanceDatePicker && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowAdvanceDatePicker(false)} />
+                        <div className="absolute top-full right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg p-2 z-20">
+                          <input
+                            type="date"
+                            value={newAdvanceDate}
+                            onChange={(e) => {
+                              setNewAdvanceDate(e.target.value);
+                              setShowAdvanceDatePicker(false);
+                            }}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addAdvanceEntry}
+                    disabled={!newAdvanceAmount || parseFloat(newAdvanceAmount) <= 0}
+                    className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Add advance entry"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
-              {/* Loan with Date */}
+              {/* Loan */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Loan</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={deductions.loanAmount}
-                    onChange={(e) => setDeductions({...deductions, loanAmount: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                    placeholder="Amount"
-                  />
-                  <input
-                    type="date"
-                    value={deductions.loanDate}
-                    onChange={(e) => setDeductions({...deductions, loanDate: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                  />
-                </div>
+                <label className="block text-xs font-medium text-purple-700 mb-1">Loan (Rs.)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={deductions.loanAmount}
+                  onChange={(e) => setDeductions({...deductions, loanAmount: e.target.value})}
+                  className="w-full px-2 py-1 border border-purple-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-purple-50"
+                  placeholder="0.00"
+                />
               </div>
 
-              {/* Fertilizer 1 with Date */}
+              {/* Fertilizer 1 */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Fertilizer 1</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={deductions.fertilizer1Amount}
-                    onChange={(e) => setDeductions({...deductions, fertilizer1Amount: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                    placeholder="Amount"
-                  />
-                  <input
-                    type="date"
-                    value={deductions.fertilizer1Date}
-                    onChange={(e) => setDeductions({...deductions, fertilizer1Date: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                  />
-                </div>
+                <label className="block text-xs font-medium text-green-700 mb-1">Fertilizer 1 (Rs.)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={deductions.fertilizer1Amount}
+                  onChange={(e) => setDeductions({...deductions, fertilizer1Amount: e.target.value})}
+                  className="w-full px-2 py-1 border border-green-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm bg-green-50"
+                  placeholder="0.00"
+                />
               </div>
 
-              {/* Fertilizer 2 with Date */}
+              {/* Fertilizer 2 */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Fertilizer 2</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={deductions.fertilizer2Amount}
-                    onChange={(e) => setDeductions({...deductions, fertilizer2Amount: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                    placeholder="Amount"
-                  />
-                  <input
-                    type="date"
-                    value={deductions.fertilizer2Date}
-                    onChange={(e) => setDeductions({...deductions, fertilizer2Date: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                  />
-                </div>
+                <label className="block text-xs font-medium text-emerald-700 mb-1">Fertilizer 2 (Rs.)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={deductions.fertilizer2Amount}
+                  onChange={(e) => setDeductions({...deductions, fertilizer2Amount: e.target.value})}
+                  className="w-full px-2 py-1 border border-emerald-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none text-sm bg-emerald-50"
+                  placeholder="0.00"
+                />
               </div>
 
-              {/* Agrochemicals with Date */}
+              {/* Agrochemicals */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Agrochemicals</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={deductions.agrochemicalsAmount}
-                    onChange={(e) => setDeductions({...deductions, agrochemicalsAmount: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                    placeholder="Amount"
-                  />
-                  <input
-                    type="date"
-                    value={deductions.agrochemicalsDate}
-                    onChange={(e) => setDeductions({...deductions, agrochemicalsDate: e.target.value})}
-                    className="px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                  />
-                </div>
+                <label className="block text-xs font-medium text-cyan-700 mb-1">Agrochemicals (Rs.)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={deductions.agrochemicalsAmount}
+                  onChange={(e) => setDeductions({...deductions, agrochemicalsAmount: e.target.value})}
+                  className="w-full px-2 py-1 border border-cyan-300 rounded focus:ring-1 focus:ring-cyan-500 outline-none text-sm bg-cyan-50"
+                  placeholder="0.00"
+                />
               </div>
 
               {/* Tea Packets Count */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Tea Packets (Count)</label>
+                <label className="block text-xs font-medium text-amber-700 mb-1">
+                  Tea Packets
+                  {deductions.teaPacketsCount && monthlyTotals?.teaPacketPrice && (
+                    <span className="text-amber-600 ml-1">(Rs. {calculateTeaPacketsTotal().toFixed(0)})</span>
+                  )}
+                </label>
                 <input
                   type="number"
                   value={deductions.teaPacketsCount}
                   onChange={(e) => setDeductions({...deductions, teaPacketsCount: e.target.value})}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
-                  placeholder="0"
-                />
-                {deductions.teaPacketsCount && monthlyTotals?.teaPacketPrice && (
-                  <div className="text-xs text-gray-600 mt-1">
-                    Total: Rs. {calculateTeaPacketsTotal().toFixed(2)}
-                  </div>
-                )}
-              </div>
-
-              {/* Transport (Auto-calculated) */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Transport ({monthlyTotals?.transportPercentage || 0}%)</label>
-                <input
-                  type="text"
-                  value={`Rs. ${parseFloat(monthlyTotals?.transportDeduction || 0).toFixed(2)}`}
-                  disabled
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded bg-gray-100 text-sm"
-                />
-              </div>
-
-              {/* Stamp Fee (Auto-calculated) */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Stamp Fee</label>
-                <input
-                  type="text"
-                  value={`Rs. ${parseFloat(monthlyTotals?.stampFee || 0).toFixed(2)}`}
-                  disabled
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded bg-gray-100 text-sm"
+                  className="w-full px-2 py-1 border border-amber-300 rounded focus:ring-1 focus:ring-amber-500 outline-none text-sm bg-amber-50"
+                  placeholder="Count"
                 />
               </div>
 
               {/* Other Deductions */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Other Deductions (Rs.)</label>
+                <label className="block text-xs font-medium text-pink-700 mb-1">Other (Rs.)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={deductions.otherDeductions}
                   onChange={(e) => setDeductions({...deductions, otherDeductions: e.target.value})}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm"
+                  className="w-full px-2 py-1 border border-pink-300 rounded focus:ring-1 focus:ring-pink-500 outline-none text-sm bg-pink-50"
                   placeholder="0.00"
+                />
+              </div>
+
+              {/* Transport (Auto-calculated) */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Transport {monthlyTotals?.transportRatePerKg > 0 && `(@${parseFloat(monthlyTotals.transportRatePerKg).toFixed(1)}/kg)`}
+                </label>
+                <input
+                  type="text"
+                  value={`Rs. ${parseFloat(monthlyTotals?.transportDeduction || 0).toFixed(2)}`}
+                  disabled
+                  className="w-full px-2 py-1 border border-gray-200 rounded bg-gray-100 text-sm text-gray-600"
+                />
+              </div>
+
+              {/* Stamp Fee (Auto-calculated) */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Stamp Fee</label>
+                <input
+                  type="text"
+                  value={`Rs. ${parseFloat(monthlyTotals?.stampFee || 0).toFixed(2)}`}
+                  disabled
+                  className="w-full px-2 py-1 border border-gray-200 rounded bg-gray-100 text-sm text-gray-600"
                 />
               </div>
 
@@ -591,6 +649,36 @@ const DeductionsPage = () => {
                 />
               </div>
             </div>
+
+            {/* Advance Entries Display Section */}
+            {deductions.advanceEntries.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-blue-700">
+                    Advance Payments
+                    <span className="ml-2 text-blue-600">(Total: Rs. {calculateAdvanceTotal().toFixed(2)})</span>
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {deductions.advanceEntries.map((entry, index) => (
+                    <div key={index} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-blue-200">
+                      <span className="text-xs text-gray-500">
+                        {entry.date ? new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'No date'}
+                      </span>
+                      <span className="text-sm font-medium text-blue-800">Rs. {parseFloat(entry.amount).toFixed(2)}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeAdvanceEntry(index)}
+                        className="p-0.5 text-red-500 hover:bg-red-100 rounded"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Save Button */}
             <div className="flex justify-end">

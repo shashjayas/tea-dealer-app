@@ -39,6 +39,10 @@ public class Deduction {
     @Column(name = "advance_date")
     private LocalDate advanceDate;
 
+    // Advance entries as JSON string [{date, amount}, ...]
+    @Column(name = "advance_entries", columnDefinition = "TEXT")
+    private String advanceEntries;
+
     // Loans
     @Column(name = "loan_amount", precision = 10, scale = 2)
     private BigDecimal loanAmount;

@@ -43,6 +43,16 @@ public class Invoice {
     @Column(name = "total_kg", precision = 10, scale = 2)
     private BigDecimal totalKg;
 
+    // Supply deduction (kg deducted before calculating amount)
+    @Column(name = "supply_deduction_percentage", precision = 5, scale = 2)
+    private BigDecimal supplyDeductionPercentage;
+
+    @Column(name = "supply_deduction_kg", precision = 10, scale = 2)
+    private BigDecimal supplyDeductionKg;
+
+    @Column(name = "payable_kg", precision = 10, scale = 2)
+    private BigDecimal payableKg;
+
     // Rates
     @Column(name = "grade1_rate", precision = 10, scale = 2)
     private BigDecimal grade1Rate;
@@ -85,8 +95,8 @@ public class Invoice {
     @Column(name = "agrochemicals_amount", precision = 10, scale = 2)
     private BigDecimal agrochemicalsAmount;
 
-    @Column(name = "transport_percentage", precision = 5, scale = 2)
-    private BigDecimal transportPercentage;
+    @Column(name = "transport_rate_per_kg", precision = 10, scale = 2)
+    private BigDecimal transportRatePerKg;
 
     @Column(name = "transport_deduction", precision = 10, scale = 2)
     private BigDecimal transportDeduction;
