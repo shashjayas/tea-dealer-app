@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Settings, FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical } from 'lucide-react';
+import { FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical, Leaf, Plus, Edit2, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
+import ConfirmDialog from '../components/common/ConfirmDialog';
+import {
+  getFertilizerTypes,
+  createFertilizerType,
+  updateFertilizerType,
+  deleteFertilizerType
+} from '../services/fertilizerService';
 
 const STORAGE_KEY = 'invoice_template_config';
 
@@ -48,6 +55,81 @@ const ConfigurationsPage = () => {
 
   const templateRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Fertilizer Types State
+  const [fertilizerTypes, setFertilizerTypes] = useState([]);
+  const [showTypeForm, setShowTypeForm] = useState(false);
+  const [editingType, setEditingType] = useState(null);
+  const [typeForm, setTypeForm] = useState({ name: '', bagSizes: '', unit: 'kg', active: true });
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+
+  // Load fertilizer types
+  useEffect(() => {
+    if (activeSection === 'fertilizerTypes') {
+      loadFertilizerTypes();
+    }
+  }, [activeSection]);
+
+  const loadFertilizerTypes = async () => {
+    try {
+      const types = await getFertilizerTypes();
+      setFertilizerTypes(types || []);
+    } catch (error) {
+      console.error('Error loading fertilizer types:', error);
+      showToast('Error loading fertilizer types', 'error');
+    }
+  };
+
+  const handleSaveType = async () => {
+    if (!typeForm.name || !typeForm.bagSizes) {
+      showToast('Please fill in name and bag sizes', 'warning');
+      return;
+    }
+
+    try {
+      if (editingType) {
+        await updateFertilizerType(editingType.id, typeForm);
+        showToast('Fertilizer type updated', 'success');
+      } else {
+        await createFertilizerType(typeForm);
+        showToast('Fertilizer type created', 'success');
+      }
+      setShowTypeForm(false);
+      setEditingType(null);
+      setTypeForm({ name: '', bagSizes: '', unit: 'kg', active: true });
+      loadFertilizerTypes();
+    } catch (error) {
+      showToast('Error saving fertilizer type', 'error');
+    }
+  };
+
+  const handleEditType = (type) => {
+    setEditingType(type);
+    setTypeForm({
+      name: type.name,
+      bagSizes: type.bagSizes,
+      unit: type.unit || 'kg',
+      active: type.active
+    });
+    setShowTypeForm(true);
+  };
+
+  const handleDeleteType = (type) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Fertilizer Type',
+      message: `Are you sure you want to delete "${type.name}"?`,
+      onConfirm: async () => {
+        try {
+          await deleteFertilizerType(type.id);
+          showToast('Fertilizer type deleted', 'success');
+          loadFertilizerTypes();
+        } catch (error) {
+          showToast('Error deleting fertilizer type', 'error');
+        }
+      }
+    });
+  };
 
   // Load saved configuration
   useEffect(() => {
@@ -209,14 +291,6 @@ const ConfigurationsPage = () => {
       ))}
 
       <div className="bg-white rounded-lg shadow-lg">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <Settings className="w-5 h-5 text-green-600" />
-            <h1 className="text-lg font-bold text-gray-800">Configurations</h1>
-          </div>
-        </div>
-
         {/* Section Tabs */}
         <div className="px-4 pt-3">
           <div className="flex items-center gap-2 border-b border-gray-200">
@@ -231,7 +305,17 @@ const ConfigurationsPage = () => {
               <FileText className="w-4 h-4" />
               Invoice Template
             </button>
-            {/* Future configuration sections can be added here */}
+            <button
+              onClick={() => setActiveSection('fertilizerTypes')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === 'fertilizerTypes'
+                  ? 'border-green-600 text-green-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Leaf className="w-4 h-4" />
+              Fertilizer Types
+            </button>
           </div>
         </div>
 
@@ -488,7 +572,124 @@ const ConfigurationsPage = () => {
             </div>
           </div>
         )}
+
+        {/* Fertilizer Types Section */}
+        {activeSection === 'fertilizerTypes' && (
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-gray-600">Configure fertilizer types and their available bag sizes.</p>
+              <button
+                onClick={() => { setShowTypeForm(true); setEditingType(null); setTypeForm({ name: '', bagSizes: '', unit: 'kg', active: true }); }}
+                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                <Plus className="w-4 h-4" /> Add Fertilizer Type
+              </button>
+            </div>
+
+            {/* Type Form Modal */}
+            {showTypeForm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-96">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">{editingType ? 'Edit' : 'Add'} Fertilizer Type</h3>
+                    <button onClick={() => setShowTypeForm(false)} className="text-gray-500 hover:text-gray-700">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={typeForm.name}
+                        onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
+                        placeholder="e.g., Urea, TSP, MOP"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bag Sizes (comma separated)</label>
+                      <input
+                        type="text"
+                        value={typeForm.bagSizes}
+                        onChange={(e) => setTypeForm({ ...typeForm, bagSizes: e.target.value })}
+                        placeholder="e.g., 25, 50"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Enter bag sizes in kg, separated by commas</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="typeActive"
+                        checked={typeForm.active}
+                        onChange={(e) => setTypeForm({ ...typeForm, active: e.target.checked })}
+                        className="rounded border-gray-300 text-green-600"
+                      />
+                      <label htmlFor="typeActive" className="text-sm text-gray-700">Active</label>
+                    </div>
+                    <button onClick={handleSaveType} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                      <Save className="w-4 h-4" /> Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Types Table */}
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Name</th>
+                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Bag Sizes</th>
+                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Status</th>
+                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fertilizerTypes.length > 0 ? fertilizerTypes.map(type => (
+                    <tr key={type.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium">{type.name}</td>
+                      <td className="px-4 py-3">
+                        {type.bagSizes.split(',').map(s => (
+                          <span key={s} className="inline-block bg-gray-100 px-2 py-0.5 rounded mr-1 text-sm">{s.trim()}kg</span>
+                        ))}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${type.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {type.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button onClick={() => handleEditType(type)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-1">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteType(type)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No fertilizer types defined. Add one to get started.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={() => { if (confirmDialog.onConfirm) confirmDialog.onConfirm(); setConfirmDialog({ isOpen: false }); }}
+        onClose={() => setConfirmDialog({ isOpen: false })}
+      />
     </div>
   );
 };
