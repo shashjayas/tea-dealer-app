@@ -9,7 +9,9 @@ const Header = ({ currentPage, user, sidebarOpen, onToggleSidebar }) => {
       case 'collections': return 'Daily Collection';
       case 'rates': return 'Manage Rates';
       case 'deductions': return 'Manage Deductions';
+      case 'fertilizer': return 'Fertilizer Management';
       case 'invoices': return 'Invoices';
+      case 'configurations': return 'Configurations';
       default: return 'Coming Soon';
     }
   };

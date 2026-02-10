@@ -1,4 +1,4 @@
-import { TrendingUp, Users, Package, DollarSign, MinusCircle, FileText, Eye, Settings } from 'lucide-react';
+import { TrendingUp, Users, Package, DollarSign, MinusCircle, FileText, Eye, Settings, Leaf } from 'lucide-react';
 
 export const menuItems = [
   { label: 'Dashboard', icon: TrendingUp, page: 'dashboard' },
@@ -6,6 +6,7 @@ export const menuItems = [
   { label: 'Daily Collection', icon: Package, page: 'collections' },
   { label: 'Manage Rates', icon: DollarSign, page: 'rates' },
   { label: 'Add Deductions', icon: MinusCircle, page: 'deductions' },
+  { label: 'Fertilizer', icon: Leaf, page: 'fertilizer' },
   { label: 'Invoices', icon: FileText, page: 'invoices' },
   { label: 'View Reports', icon: Eye, page: 'reports' },
   { label: 'Configurations', icon: Settings, page: 'configurations' },

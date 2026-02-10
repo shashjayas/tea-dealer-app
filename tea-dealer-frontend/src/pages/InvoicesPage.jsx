@@ -962,158 +962,186 @@ const InvoicesPage = () => {
 
                 {currentInvoice ? (
                   <>
-                    {/* Customer Info Row */}
-                    <div className="flex items-center gap-6 mb-3 pb-2 border-b border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500">Book:</span>
-                        <span className="text-lg font-bold text-green-700">{currentInvoice.bookNumber}</span>
-                      </div>
-                      <div className="text-lg font-semibold text-gray-800">{currentInvoice.customerName}</div>
-                      {currentInvoice.customerNameSinhala && (
-                        <div className="text-lg text-gray-600">{currentInvoice.customerNameSinhala}</div>
-                      )}
-                      <div className="ml-auto text-gray-500">{MONTHS[selectedMonth - 1]} {selectedYear}</div>
-                    </div>
-
-                    {/* Two Column Layout */}
-                    <div className="flex gap-4 mb-3">
-                      {/* Left Half: Rates & Amounts Table */}
-                      <div className="flex-1">
-                        <table className="w-full border border-gray-200 rounded overflow-hidden">
-                          <thead className="bg-green-50">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-gray-700 font-semibold border-b">Grade</th>
-                              <th className="px-3 py-2 text-right text-gray-700 font-semibold border-b">Kg</th>
-                              <th className="px-3 py-2 text-right text-gray-700 font-semibold border-b">Rate</th>
-                              <th className="px-3 py-2 text-right text-gray-700 font-semibold border-b">Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="border-b">
-                              <td className="px-3 py-2"><span className="inline-flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span>Grade 1</span></td>
-                              <td className="px-3 py-2 text-right">{parseFloat(currentInvoice.grade1Kg || 0).toFixed(2)}</td>
-                              <td className="px-3 py-2 text-right">{parseFloat(currentInvoice.grade1Rate || 0).toFixed(2)}</td>
-                              <td className="px-3 py-2 text-right font-semibold">{parseFloat(currentInvoice.grade1Amount || 0).toFixed(2)}</td>
-                            </tr>
-                            <tr className="border-b">
-                              <td className="px-3 py-2"><span className="inline-flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full"></span>Grade 2</span></td>
-                              <td className="px-3 py-2 text-right">{parseFloat(currentInvoice.grade2Kg || 0).toFixed(2)}</td>
-                              <td className="px-3 py-2 text-right">{parseFloat(currentInvoice.grade2Rate || 0).toFixed(2)}</td>
-                              <td className="px-3 py-2 text-right font-semibold">{parseFloat(currentInvoice.grade2Amount || 0).toFixed(2)}</td>
-                            </tr>
-                            <tr className="border-b bg-gray-50">
-                              <td className="px-3 py-2 text-gray-600">Total Collected</td>
-                              <td className="px-3 py-2 text-right font-medium">{parseFloat(currentInvoice.totalKg || 0).toFixed(2)}</td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
-                            </tr>
-                            <tr className="border-b bg-orange-50">
-                              <td className="px-3 py-2 text-orange-700">Supply Ded. ({parseFloat(currentInvoice.supplyDeductionPercentage || 0).toFixed(1)}%)</td>
-                              <td className="px-3 py-2 text-right text-orange-700">-{parseFloat(currentInvoice.supplyDeductionKg || 0).toFixed(2)}</td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
-                            </tr>
-                            <tr className="bg-blue-50">
-                              <td className="px-3 py-2 font-bold text-blue-800">Payable</td>
-                              <td className="px-3 py-2 text-right font-bold text-blue-800">{parseFloat(currentInvoice.payableKg || 0).toFixed(2)}</td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2 text-right font-bold text-blue-800">{parseFloat(currentInvoice.totalAmount || 0).toFixed(2)}</td>
-                            </tr>
-                          </tbody>
-                        </table>
+                    {/* Header Row - Customer Info & Rates */}
+                    <div className="flex gap-2 mb-2">
+                      {/* Left: Customer Info */}
+                      <div className="border border-gray-300 rounded flex text-sm">
+                        <div className="px-2 py-1 border-r border-gray-200 bg-gray-50">
+                          <span className="font-bold text-green-700">{currentInvoice.bookNumber}</span>
+                        </div>
+                        <div className="px-2 py-1 border-r border-gray-200">
+                          <span className="font-semibold text-gray-800">{currentInvoice.customerName}</span>
+                        </div>
+                        <div className="px-2 py-1">
+                          <span className="text-gray-600">{currentInvoice.customerNameSinhala || '-'}</span>
+                        </div>
                       </div>
 
-                      {/* Right Half: Collections with Dates */}
-                      <div className="flex-1">
-                        <div className="border border-gray-200 rounded h-full">
-                          <div className="bg-green-50 px-3 py-2 border-b font-semibold text-gray-700">
-                            Collections ({sortedDates.length} days)
-                          </div>
-                          <div className="p-2 max-h-40 overflow-y-auto">
-                            {sortedDates.length > 0 ? (
-                              <div className="flex flex-wrap gap-2">
-                                {sortedDates.map(dateStr => {
-                                  const col = collectionsByDate[dateStr];
-                                  const totalKg = (col?.grade1 || 0) + (col?.grade2 || 0);
-                                  const day = new Date(dateStr).getDate();
-                                  return (
-                                    <div
-                                      key={dateStr}
-                                      className="inline-flex items-center gap-1.5 px-2 py-1 bg-green-100 border border-green-300 rounded"
-                                      title={`G1: ${col.grade1}kg, G2: ${col.grade2}kg`}
-                                    >
-                                      <span className="text-gray-600 font-medium">{day}:</span>
-                                      <span className="font-bold text-green-700">{totalKg.toFixed(1)}kg</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <div className="text-center text-gray-400 py-4">No collections this month</div>
-                            )}
-                          </div>
-                          <div className="px-3 py-2 border-t bg-gray-50 text-right">
-                            <span className="text-gray-600">Total:</span>
-                            <span className="ml-2 font-bold text-green-700">{parseFloat(currentInvoice.totalKg || 0).toFixed(2)} kg</span>
-                          </div>
+                      {/* Right: Rates Summary - Single Row */}
+                      <div className="border border-gray-300 rounded flex text-sm">
+                        <div className="px-2 py-1 border-r border-gray-200 bg-green-50 text-center">
+                          <span className="text-xs text-gray-500 mr-1">G1:</span>
+                          <span className="font-bold">{parseFloat(currentInvoice.grade1Rate || 0).toFixed(2)}</span>
+                        </div>
+                        <div className="px-2 py-1 border-r border-gray-200 bg-green-50 text-center">
+                          <span className="text-xs text-gray-500 mr-1">G2:</span>
+                          <span className="font-bold">{parseFloat(currentInvoice.grade2Rate || 0).toFixed(2)}</span>
+                        </div>
+                        <div className="px-2 py-1 border-r border-gray-200 text-center">
+                          <span className="text-xs text-gray-500 mr-1">Total:</span>
+                          <span className="font-bold text-green-700">{parseFloat(currentInvoice.totalKg || 0).toFixed(0)}</span>
+                        </div>
+                        <div className="px-2 py-1 text-center">
+                          <span className="text-xs text-gray-500 mr-1">Pay:</span>
+                          <span className="font-bold text-blue-700">{parseFloat(currentInvoice.payableKg || 0).toFixed(0)}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Deductions Table */}
-                    <div className="mb-3">
-                      <table className="w-full border border-gray-200 rounded overflow-hidden">
-                        <thead className="bg-red-50">
-                          <tr>
-                            <th className="px-3 py-2 text-left text-gray-700 font-semibold border-b" colSpan="2">Deductions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td colSpan="2" className="p-0">
-                              <div className="flex flex-wrap">
-                                {currentInvoice.lastMonthArrears > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Arrears</span><span className="font-medium">{parseFloat(currentInvoice.lastMonthArrears).toFixed(2)}</span></div>
-                                )}
-                                {currentInvoice.advanceAmount > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Advance</span><span className="font-medium">{parseFloat(currentInvoice.advanceAmount).toFixed(2)}</span></div>
-                                )}
-                                {currentInvoice.loanAmount > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Loan</span><span className="font-medium">{parseFloat(currentInvoice.loanAmount).toFixed(2)}</span></div>
-                                )}
-                                {currentInvoice.fertilizer1Amount > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Fertilizer 1</span><span className="font-medium">{parseFloat(currentInvoice.fertilizer1Amount).toFixed(2)}</span></div>
-                                )}
-                                {currentInvoice.fertilizer2Amount > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Fertilizer 2</span><span className="font-medium">{parseFloat(currentInvoice.fertilizer2Amount).toFixed(2)}</span></div>
-                                )}
-                                {currentInvoice.teaPacketsTotal > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Tea Packets</span><span className="font-medium">{parseFloat(currentInvoice.teaPacketsTotal).toFixed(2)}</span></div>
-                                )}
-                                {currentInvoice.agrochemicalsAmount > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Agrochemicals</span><span className="font-medium">{parseFloat(currentInvoice.agrochemicalsAmount).toFixed(2)}</span></div>
-                                )}
-                                {currentInvoice.transportDeduction > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Transport</span><span className="font-medium">{parseFloat(currentInvoice.transportDeduction).toFixed(2)}</span></div>
-                                )}
-                                {currentInvoice.stampFee > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Stamp Fee</span><span className="font-medium">{parseFloat(currentInvoice.stampFee).toFixed(2)}</span></div>
-                                )}
-                                {currentInvoice.otherDeductions > 0 && (
-                                  <div className="flex justify-between px-3 py-1.5 border-r border-b w-1/3"><span className="text-gray-600">Other</span><span className="font-medium">{parseFloat(currentInvoice.otherDeductions).toFixed(2)}</span></div>
-                                )}
-                                {parseFloat(currentInvoice.totalDeductions || 0) === 0 && (
-                                  <div className="px-3 py-2 text-gray-400 w-full text-center">No deductions</div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                          <tr className="bg-red-100">
-                            <td className="px-3 py-2 font-bold text-red-700">Total Deductions</td>
-                            <td className="px-3 py-2 text-right font-bold text-red-700">Rs. {parseFloat(currentInvoice.totalDeductions || 0).toFixed(2)}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                    {/* Main Content - Calendar & Calculations */}
+                    <div className="flex gap-3 mb-2">
+                      {/* Left: Calendar Grid */}
+                      <div className="w-72 border border-gray-300 rounded">
+                        <div className="bg-gray-100 px-2 py-1 border-b border-gray-200 text-center font-semibold text-gray-700 text-sm">
+                          {MONTHS[selectedMonth - 1]} {selectedYear}
+                        </div>
+                        <div className="grid grid-cols-3 text-xs">
+                          {/* Header Row */}
+                          <div className="px-1 py-1 border-r border-b border-gray-200 bg-gray-50 text-center font-medium">Date</div>
+                          <div className="px-1 py-1 border-r border-b border-gray-200 bg-gray-50 text-center font-medium">Date</div>
+                          <div className="px-1 py-1 border-b border-gray-200 bg-gray-50 text-center font-medium">Date</div>
+
+                          {/* Calendar rows - 10 rows for days 01-10, 11-20, 21-30/31 */}
+                          {Array.from({ length: 11 }, (_, rowIndex) => {
+                            const day1 = rowIndex + 1; // 1-11
+                            const day2 = rowIndex + 11; // 11-21
+                            const day3 = rowIndex + 21; // 21-31
+                            const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+
+                            const getKgForDay = (day) => {
+                              if (day > lastDay) return null;
+                              const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                              const col = collectionsByDate[dateStr];
+                              if (!col) return 0;
+                              return (col.grade1 || 0) + (col.grade2 || 0);
+                            };
+
+                            const kg1 = day1 <= 10 ? getKgForDay(day1) : null;
+                            const kg2 = day2 <= 20 ? getKgForDay(day2) : null;
+                            const kg3 = getKgForDay(day3);
+
+                            if (day1 > 10 && day3 > lastDay) return null;
+
+                            return (
+                              <React.Fragment key={rowIndex}>
+                                {/* Column 1: Days 01-10 */}
+                                <div className="flex border-r border-b border-gray-200">
+                                  <span className="w-6 px-1 py-0.5 bg-gray-50 border-r border-gray-100 text-gray-500">{day1 <= 10 ? String(day1).padStart(2, '0') : ''}</span>
+                                  <span className={`flex-1 px-1 py-0.5 text-right ${kg1 && kg1 > 0 ? 'font-medium text-gray-800' : 'text-gray-300'}`}>
+                                    {day1 <= 10 ? (kg1 > 0 ? kg1.toFixed(0) : '-') : ''}
+                                  </span>
+                                </div>
+                                {/* Column 2: Days 11-20 */}
+                                <div className="flex border-r border-b border-gray-200">
+                                  <span className="w-6 px-1 py-0.5 bg-gray-50 border-r border-gray-100 text-gray-500">{day2 <= 20 ? day2 : ''}</span>
+                                  <span className={`flex-1 px-1 py-0.5 text-right ${kg2 && kg2 > 0 ? 'font-medium text-gray-800' : 'text-gray-300'}`}>
+                                    {day2 <= 20 ? (kg2 > 0 ? kg2.toFixed(0) : '-') : ''}
+                                  </span>
+                                </div>
+                                {/* Column 3: Days 21-31 */}
+                                <div className="flex border-b border-gray-200">
+                                  <span className="w-6 px-1 py-0.5 bg-gray-50 border-r border-gray-100 text-gray-500">{day3 <= lastDay ? day3 : ''}</span>
+                                  <span className={`flex-1 px-1 py-0.5 text-right ${kg3 && kg3 > 0 ? 'font-medium text-gray-800' : 'text-gray-300'}`}>
+                                    {day3 <= lastDay ? (kg3 > 0 ? kg3.toFixed(0) : '-') : ''}
+                                  </span>
+                                </div>
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Right: Calculations & Deductions */}
+                      <div className="flex-1 flex flex-col gap-3">
+                        {/* Amount Calculations */}
+                        <div className="border border-gray-300 rounded">
+                          <table className="w-full text-sm">
+                            <tbody>
+                              <tr className="border-b border-gray-200">
+                                <td className="px-3 py-1.5 text-gray-600">Grade 1 Total</td>
+                                <td className="px-3 py-1.5 text-right">{parseFloat(currentInvoice.grade1Kg || 0).toFixed(2)} kg</td>
+                                <td className="px-3 py-1.5 text-right font-semibold">{parseFloat(currentInvoice.grade1Amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                              </tr>
+                              <tr className="border-b border-gray-200">
+                                <td className="px-3 py-1.5 text-gray-600">Grade 2 Total</td>
+                                <td className="px-3 py-1.5 text-right">{parseFloat(currentInvoice.grade2Kg || 0).toFixed(2)} kg</td>
+                                <td className="px-3 py-1.5 text-right font-semibold">{parseFloat(currentInvoice.grade2Amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                              </tr>
+                              <tr className="border-b border-gray-200 bg-orange-50">
+                                <td className="px-3 py-1.5 text-orange-700">Supply Ded. ({parseFloat(currentInvoice.supplyDeductionPercentage || 0).toFixed(1)}%)</td>
+                                <td className="px-3 py-1.5 text-right text-orange-700">-{parseFloat(currentInvoice.supplyDeductionKg || 0).toFixed(2)} kg</td>
+                                <td className="px-3 py-1.5"></td>
+                              </tr>
+                              <tr className="bg-blue-50">
+                                <td className="px-3 py-1.5 font-bold text-blue-800">Gross Amount</td>
+                                <td className="px-3 py-1.5 text-right font-bold text-blue-800">{parseFloat(currentInvoice.payableKg || 0).toFixed(2)} kg</td>
+                                <td className="px-3 py-1.5 text-right font-bold text-blue-800">{parseFloat(currentInvoice.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Deductions */}
+                        <div className="border border-gray-300 rounded flex-1">
+                          <div className="bg-red-50 px-3 py-1 border-b border-gray-200 font-semibold text-red-700 text-sm">Deductions</div>
+                          <div className="grid grid-cols-2 text-sm">
+                            <div className="flex justify-between px-3 py-1 border-r border-b border-gray-200">
+                              <span className="text-gray-600">Arrears</span>
+                              <span className="font-medium">{currentInvoice.lastMonthArrears > 0 ? parseFloat(currentInvoice.lastMonthArrears).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-200">
+                              <span className="text-gray-600">Advance</span>
+                              <span className="font-medium">{currentInvoice.advanceAmount > 0 ? parseFloat(currentInvoice.advanceAmount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-3 py-1 border-r border-b border-gray-200">
+                              <span className="text-gray-600">Fertilizer 1</span>
+                              <span className="font-medium">{currentInvoice.fertilizer1Amount > 0 ? parseFloat(currentInvoice.fertilizer1Amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-200">
+                              <span className="text-gray-600">Fertilizer 2</span>
+                              <span className="font-medium">{currentInvoice.fertilizer2Amount > 0 ? parseFloat(currentInvoice.fertilizer2Amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-3 py-1 border-r border-b border-gray-200">
+                              <span className="text-gray-600">Transport</span>
+                              <span className="font-medium">{currentInvoice.transportDeduction > 0 ? parseFloat(currentInvoice.transportDeduction).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-200">
+                              <span className="text-gray-600">Tea Packets</span>
+                              <span className="font-medium">{currentInvoice.teaPacketsTotal > 0 ? parseFloat(currentInvoice.teaPacketsTotal).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-3 py-1 border-r border-b border-gray-200">
+                              <span className="text-gray-600">Loan</span>
+                              <span className="font-medium">{currentInvoice.loanAmount > 0 ? parseFloat(currentInvoice.loanAmount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-200">
+                              <span className="text-gray-600">Stamp Fee</span>
+                              <span className="font-medium">{currentInvoice.stampFee > 0 ? parseFloat(currentInvoice.stampFee).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-3 py-1 border-r border-b border-gray-200">
+                              <span className="text-gray-600">Agrochemicals</span>
+                              <span className="font-medium">{currentInvoice.agrochemicalsAmount > 0 ? parseFloat(currentInvoice.agrochemicalsAmount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-3 py-1 border-b border-gray-200">
+                              <span className="text-gray-600">Other</span>
+                              <span className="font-medium">{currentInvoice.otherDeductions > 0 ? parseFloat(currentInvoice.otherDeductions).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}</span>
+                            </div>
+                          </div>
+                          <div className="flex justify-between px-3 py-1.5 bg-red-100 font-bold text-red-700">
+                            <span>Total Deductions</span>
+                            <span>{parseFloat(currentInvoice.totalDeductions || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Net Amount */}
@@ -1122,7 +1150,7 @@ const InvoicesPage = () => {
                         {parseFloat(currentInvoice.netAmount || 0) >= 0 ? 'Net Pay' : 'Balance Due'}
                       </span>
                       <span className="text-white text-2xl font-bold">
-                        Rs. {Math.abs(parseFloat(currentInvoice.netAmount || 0)).toFixed(2)}
+                        Rs. {Math.abs(parseFloat(currentInvoice.netAmount || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </>
@@ -1163,6 +1191,7 @@ const InvoicesPage = () => {
         isOpen={!!printInvoice}
         onClose={() => setPrintInvoice(null)}
         invoice={printInvoice}
+        collections={collections}
       />
     </div>
   );

@@ -1,9 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Settings, FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical } from 'lucide-react';
+import { FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical, Leaf, Plus, Edit2, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
+import ConfirmDialog from '../components/common/ConfirmDialog';
+import {
+  getFertilizerTypes,
+  createFertilizerType,
+  updateFertilizerType,
+  deleteFertilizerType
+} from '../services/fertilizerService';
 
 const STORAGE_KEY = 'invoice_template_config';
+
+// Generate day fields for 1-31
+const DAY_FIELDS = Array.from({ length: 31 }, (_, i) => ({
+  id: `day${String(i + 1).padStart(2, '0')}`,
+  label: `Day ${String(i + 1).padStart(2, '0')}`,
+  sampleValue: i % 3 === 0 ? '45' : '-'
+}));
 
 const AVAILABLE_FIELDS = [
   { id: 'bookNumber', label: 'Book Number', sampleValue: '001' },
@@ -11,14 +25,19 @@ const AVAILABLE_FIELDS = [
   { id: 'customerNameSinhala', label: 'Customer Name (Sinhala)', sampleValue: 'ජෝන් ඩෝ' },
   { id: 'month', label: 'Month', sampleValue: 'January' },
   { id: 'year', label: 'Year', sampleValue: '2025' },
+  // Daily collection fields
+  ...DAY_FIELDS,
   { id: 'grade1Kg', label: 'Grade 1 Kg', sampleValue: '150.50' },
   { id: 'grade2Kg', label: 'Grade 2 Kg', sampleValue: '75.25' },
   { id: 'totalKg', label: 'Total Kg', sampleValue: '225.75' },
+  { id: 'supplyDeductionKg', label: 'Supply Deduction Kg', sampleValue: '11.29' },
+  { id: 'supplyDeductionPercent', label: 'Supply Deduction %', sampleValue: '5.0' },
+  { id: 'payableKg', label: 'Payable Kg', sampleValue: '214.46' },
   { id: 'grade1Rate', label: 'Grade 1 Rate', sampleValue: '120.00' },
   { id: 'grade2Rate', label: 'Grade 2 Rate', sampleValue: '100.00' },
   { id: 'grade1Amount', label: 'Grade 1 Amount', sampleValue: '18,060.00' },
   { id: 'grade2Amount', label: 'Grade 2 Amount', sampleValue: '7,525.00' },
-  { id: 'totalAmount', label: 'Total Amount', sampleValue: '25,585.00' },
+  { id: 'totalAmount', label: 'Gross Amount', sampleValue: '25,585.00' },
   { id: 'totalDeductions', label: 'Total Deductions', sampleValue: '5,000.00' },
   { id: 'netAmount', label: 'Net Amount', sampleValue: '20,585.00' },
   { id: 'advance', label: 'Advance', sampleValue: '2,000.00' },
@@ -45,9 +64,87 @@ const ConfigurationsPage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [globalFontSize, setGlobalFontSize] = useState(12);
+  const [globalFontFamily, setGlobalFontFamily] = useState("'Courier New', Courier, monospace");
 
   const templateRef = useRef(null);
   const fileInputRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Fertilizer Types State
+  const [fertilizerTypes, setFertilizerTypes] = useState([]);
+  const [showTypeForm, setShowTypeForm] = useState(false);
+  const [editingType, setEditingType] = useState(null);
+  const [typeForm, setTypeForm] = useState({ name: '', bagSizes: '', unit: 'kg', active: true });
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+
+  // Load fertilizer types
+  useEffect(() => {
+    if (activeSection === 'fertilizerTypes') {
+      loadFertilizerTypes();
+    }
+  }, [activeSection]);
+
+  const loadFertilizerTypes = async () => {
+    try {
+      const types = await getFertilizerTypes();
+      setFertilizerTypes(types || []);
+    } catch (error) {
+      console.error('Error loading fertilizer types:', error);
+      showToast('Error loading fertilizer types', 'error');
+    }
+  };
+
+  const handleSaveType = async () => {
+    if (!typeForm.name || !typeForm.bagSizes) {
+      showToast('Please fill in name and bag sizes', 'warning');
+      return;
+    }
+
+    try {
+      if (editingType) {
+        await updateFertilizerType(editingType.id, typeForm);
+        showToast('Fertilizer type updated', 'success');
+      } else {
+        await createFertilizerType(typeForm);
+        showToast('Fertilizer type created', 'success');
+      }
+      setShowTypeForm(false);
+      setEditingType(null);
+      setTypeForm({ name: '', bagSizes: '', unit: 'kg', active: true });
+      loadFertilizerTypes();
+    } catch (error) {
+      showToast('Error saving fertilizer type', 'error');
+    }
+  };
+
+  const handleEditType = (type) => {
+    setEditingType(type);
+    setTypeForm({
+      name: type.name,
+      bagSizes: type.bagSizes,
+      unit: type.unit || 'kg',
+      active: type.active
+    });
+    setShowTypeForm(true);
+  };
+
+  const handleDeleteType = (type) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Fertilizer Type',
+      message: `Are you sure you want to delete "${type.name}"?`,
+      onConfirm: async () => {
+        try {
+          await deleteFertilizerType(type.id);
+          showToast('Fertilizer type deleted', 'success');
+          loadFertilizerTypes();
+        } catch (error) {
+          showToast('Error deleting fertilizer type', 'error');
+        }
+      }
+    });
+  };
 
   // Load saved configuration
   useEffect(() => {
@@ -58,11 +155,52 @@ const ConfigurationsPage = () => {
         setTemplateImage(config.templateImage || null);
         setTemplateSize(config.templateSize || { width: 800, height: 1000 });
         setPlacedFields(config.fields || []);
+        setGlobalFontSize(config.globalFontSize || 12);
+        setGlobalFontFamily(config.globalFontFamily || "'Courier New', Courier, monospace");
       } catch (e) {
         console.error('Error loading config:', e);
       }
     }
   }, []);
+
+  // Keyboard navigation for selected field
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!selectedField || !templateRef.current) return;
+
+      const step = e.shiftKey ? 1 : 0.2; // Shift for larger steps
+      let dx = 0, dy = 0;
+
+      switch (e.key) {
+        case 'ArrowUp': dy = -step; break;
+        case 'ArrowDown': dy = step; break;
+        case 'ArrowLeft': dx = -step; break;
+        case 'ArrowRight': dx = step; break;
+        case 'Delete':
+        case 'Backspace':
+          if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+            removeField(selectedField);
+          }
+          return;
+        default: return;
+      }
+
+      e.preventDefault();
+      setPlacedFields(fields => fields.map(f => {
+        if (f.id === selectedField) {
+          return {
+            ...f,
+            x: Math.max(0, Math.min(100, f.x + dx)),
+            y: Math.max(0, Math.min(100, f.y + dy))
+          };
+        }
+        return f;
+      }));
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedField]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -179,10 +317,17 @@ const ConfigurationsPage = () => {
     const config = {
       templateImage,
       templateSize,
-      fields: placedFields
+      fields: placedFields,
+      globalFontSize,
+      globalFontFamily
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     showToast('Template configuration saved successfully', 'success');
+  };
+
+  const applyGlobalFontSize = () => {
+    setPlacedFields(fields => fields.map(f => ({ ...f, fontSize: globalFontSize })));
+    showToast('Font size applied to all fields', 'success');
   };
 
   const clearTemplate = () => {
@@ -209,14 +354,6 @@ const ConfigurationsPage = () => {
       ))}
 
       <div className="bg-white rounded-lg shadow-lg">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <Settings className="w-5 h-5 text-green-600" />
-            <h1 className="text-lg font-bold text-gray-800">Configurations</h1>
-          </div>
-        </div>
-
         {/* Section Tabs */}
         <div className="px-4 pt-3">
           <div className="flex items-center gap-2 border-b border-gray-200">
@@ -231,7 +368,17 @@ const ConfigurationsPage = () => {
               <FileText className="w-4 h-4" />
               Invoice Template
             </button>
-            {/* Future configuration sections can be added here */}
+            <button
+              onClick={() => setActiveSection('fertilizerTypes')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === 'fertilizerTypes'
+                  ? 'border-green-600 text-green-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Leaf className="w-4 h-4" />
+              Fertilizer Types
+            </button>
           </div>
         </div>
 
@@ -266,6 +413,38 @@ const ConfigurationsPage = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
+                {/* Global Font Controls */}
+                <div className="flex items-center gap-1 border border-gray-200 rounded-lg px-2 py-1">
+                  <label className="text-xs text-gray-500">Font:</label>
+                  <select
+                    value={globalFontFamily}
+                    onChange={(e) => setGlobalFontFamily(e.target.value)}
+                    className="text-sm border-none outline-none bg-transparent"
+                  >
+                    <option value="'Courier New', Courier, monospace">Courier New</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                    <option value="Verdana, sans-serif">Verdana</option>
+                    <option value="'Noto Sans Sinhala', sans-serif">Noto Sans Sinhala</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1 border border-gray-200 rounded-lg px-2 py-1">
+                  <label className="text-xs text-gray-500">Size:</label>
+                  <input
+                    type="number"
+                    value={globalFontSize}
+                    onChange={(e) => setGlobalFontSize(parseInt(e.target.value) || 12)}
+                    className="w-12 text-sm border-none outline-none bg-transparent"
+                    min="8"
+                    max="32"
+                  />
+                  <button
+                    onClick={applyGlobalFontSize}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Apply All
+                  </button>
+                </div>
                 <button
                   onClick={() => setShowPreview(!showPreview)}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
@@ -341,13 +520,18 @@ const ConfigurationsPage = () => {
               </div>
 
               {/* Template Canvas */}
-              <div className="flex-1">
+              <div className="flex-1" ref={containerRef} tabIndex={0}>
                 {templateImage ? (
                   <div
                     ref={templateRef}
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
-                    onClick={() => setSelectedField(null)}
+                    onClick={(e) => {
+                      // Only deselect if clicking directly on the template background
+                      if (e.target === templateRef.current) {
+                        setSelectedField(null);
+                      }
+                    }}
                     className="relative border border-gray-300 rounded-lg overflow-hidden mx-auto"
                     style={{
                       width: Math.min(templateSize.width, 600),
@@ -361,11 +545,25 @@ const ConfigurationsPage = () => {
                   >
                     {placedFields.map(field => {
                       const fieldInfo = AVAILABLE_FIELDS.find(f => f.id === field.id);
+                      // Transform based on alignment: left=none, center=-50%, right=-100%
+                      const getTransform = () => {
+                        switch (field.align) {
+                          case 'right': return 'translateX(-100%)';
+                          case 'center': return 'translateX(-50%)';
+                          default: return 'none'; // left
+                        }
+                      };
                       return (
                         <div
                           key={field.id}
+                          tabIndex={0}
                           onMouseDown={(e) => handleFieldMouseDown(e, field)}
-                          className={`absolute transform -translate-x-1/2 cursor-grab select-none ${
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedField(field.id);
+                          }}
+                          onFocus={() => setSelectedField(field.id)}
+                          className={`absolute cursor-grab select-none outline-none ${
                             selectedField === field.id ? 'ring-2 ring-blue-500 ring-offset-1' : ''
                           }`}
                           style={{
@@ -374,7 +572,8 @@ const ConfigurationsPage = () => {
                             fontSize: `${field.fontSize}px`,
                             fontWeight: field.fontWeight,
                             textAlign: field.align,
-                            fontFamily: "'Courier New', Courier, monospace",
+                            fontFamily: globalFontFamily,
+                            transform: getTransform(),
                             backgroundColor: showPreview ? 'transparent' : 'rgba(255,255,255,0.9)',
                             padding: showPreview ? '0' : '2px 4px',
                             borderRadius: '2px',
@@ -485,10 +684,128 @@ const ConfigurationsPage = () => {
             <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
               <strong>How to use:</strong> Upload your pre-printed invoice form image, then drag fields from the left panel onto the template.
               Position them where values should print. Click a field to adjust its properties. Save when done.
+              <br /><strong>Keyboard shortcuts:</strong> Arrow keys to move selected field (Shift+Arrow for larger steps), Delete to remove.
+            </div>
+          </div>
+        )}
+
+        {/* Fertilizer Types Section */}
+        {activeSection === 'fertilizerTypes' && (
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-gray-600">Configure fertilizer types and their available bag sizes.</p>
+              <button
+                onClick={() => { setShowTypeForm(true); setEditingType(null); setTypeForm({ name: '', bagSizes: '', unit: 'kg', active: true }); }}
+                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                <Plus className="w-4 h-4" /> Add Fertilizer Type
+              </button>
+            </div>
+
+            {/* Type Form Modal */}
+            {showTypeForm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-96">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">{editingType ? 'Edit' : 'Add'} Fertilizer Type</h3>
+                    <button onClick={() => setShowTypeForm(false)} className="text-gray-500 hover:text-gray-700">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={typeForm.name}
+                        onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
+                        placeholder="e.g., Urea, TSP, MOP"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bag Sizes (comma separated)</label>
+                      <input
+                        type="text"
+                        value={typeForm.bagSizes}
+                        onChange={(e) => setTypeForm({ ...typeForm, bagSizes: e.target.value })}
+                        placeholder="e.g., 25, 50"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Enter bag sizes in kg, separated by commas</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="typeActive"
+                        checked={typeForm.active}
+                        onChange={(e) => setTypeForm({ ...typeForm, active: e.target.checked })}
+                        className="rounded border-gray-300 text-green-600"
+                      />
+                      <label htmlFor="typeActive" className="text-sm text-gray-700">Active</label>
+                    </div>
+                    <button onClick={handleSaveType} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                      <Save className="w-4 h-4" /> Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Types Table */}
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Name</th>
+                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Bag Sizes</th>
+                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Status</th>
+                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fertilizerTypes.length > 0 ? fertilizerTypes.map(type => (
+                    <tr key={type.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium">{type.name}</td>
+                      <td className="px-4 py-3">
+                        {type.bagSizes.split(',').map(s => (
+                          <span key={s} className="inline-block bg-gray-100 px-2 py-0.5 rounded mr-1 text-sm">{s.trim()}kg</span>
+                        ))}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${type.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {type.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button onClick={() => handleEditType(type)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-1">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteType(type)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No fertilizer types defined. Add one to get started.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={() => { if (confirmDialog.onConfirm) confirmDialog.onConfirm(); setConfirmDialog({ isOpen: false }); }}
+        onClose={() => setConfirmDialog({ isOpen: false })}
+      />
     </div>
   );
 };
