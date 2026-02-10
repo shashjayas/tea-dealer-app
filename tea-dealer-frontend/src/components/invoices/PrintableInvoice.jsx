@@ -3,7 +3,7 @@ import { X, Printer } from 'lucide-react';
 
 const STORAGE_KEY = 'invoice_template_config';
 
-const PrintableInvoice = ({ isOpen, onClose, invoice }) => {
+const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
   const printRef = useRef(null);
   const [config, setConfig] = useState(null);
 
@@ -12,16 +12,52 @@ const PrintableInvoice = ({ isOpen, onClose, invoice }) => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        setConfig(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Set defaults for global font settings
+        if (!parsed.globalFontFamily) {
+          parsed.globalFontFamily = "'Courier New', Courier, monospace";
+        }
+        setConfig(parsed);
       } catch (e) {
         console.error('Error loading template config:', e);
       }
     }
   }, []);
 
+  // Build collections by date map
+  const collectionsByDate = {};
+  if (invoice && collections.length > 0) {
+    collections.forEach(col => {
+      collectionsByDate[col.collectionDate] = col;
+    });
+  }
+
+  // Get kg for a specific day
+  const getKgForDay = (day) => {
+    if (!invoice) return '-';
+    const year = invoice.year;
+    const month = invoice.month;
+    const lastDay = new Date(year, month, 0).getDate();
+    if (day > lastDay) return '';
+
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const col = collectionsByDate[dateStr];
+    if (!col) return '-';
+    const total = (col.grade1 || 0) + (col.grade2 || 0);
+    return total > 0 ? total.toFixed(0) : '-';
+  };
+
   // Map invoice data to field values
   const getFieldValue = (fieldId) => {
     if (!invoice) return '';
+
+    // Check if it's a day field (day01 - day31)
+    if (fieldId.startsWith('day')) {
+      const dayNum = parseInt(fieldId.replace('day', ''), 10);
+      if (dayNum >= 1 && dayNum <= 31) {
+        return getKgForDay(dayNum);
+      }
+    }
 
     const fieldMap = {
       bookNumber: invoice.bookNumber || '',
@@ -32,6 +68,9 @@ const PrintableInvoice = ({ isOpen, onClose, invoice }) => {
       grade1Kg: formatNumber(invoice.grade1Kg),
       grade2Kg: formatNumber(invoice.grade2Kg),
       totalKg: formatNumber(invoice.totalKg),
+      supplyDeductionKg: formatNumber(invoice.supplyDeductionKg),
+      supplyDeductionPercent: invoice.supplyDeductionPercentage ? parseFloat(invoice.supplyDeductionPercentage).toFixed(1) : '',
+      payableKg: formatNumber(invoice.payableKg),
       grade1Rate: formatNumber(invoice.grade1Rate),
       grade2Rate: formatNumber(invoice.grade2Rate),
       grade1Amount: formatNumber(invoice.grade1Amount),
@@ -71,6 +110,7 @@ const PrintableInvoice = ({ isOpen, onClose, invoice }) => {
     const printContent = printRef.current;
     if (!printContent) return;
 
+    const fontFamily = config?.globalFontFamily || "'Courier New', Courier, monospace";
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -85,7 +125,7 @@ const PrintableInvoice = ({ isOpen, onClose, invoice }) => {
             body {
               margin: 0;
               padding: 0;
-              font-family: 'Courier New', Courier, monospace;
+              font-family: ${fontFamily};
             }
             .print-container {
               position: relative;
@@ -104,7 +144,6 @@ const PrintableInvoice = ({ isOpen, onClose, invoice }) => {
             }
             .field {
               position: absolute;
-              transform: translateX(-50%);
               white-space: nowrap;
             }
             @media print {
@@ -191,22 +230,33 @@ const PrintableInvoice = ({ isOpen, onClose, invoice }) => {
             }}
           >
             {/* Render fields at their positions */}
-            {config.fields.map(field => (
-              <div
-                key={field.id}
-                className="field absolute transform -translate-x-1/2"
-                style={{
-                  left: `${field.x}%`,
-                  top: `${field.y}%`,
-                  fontSize: `${field.fontSize || 12}px`,
-                  fontWeight: field.fontWeight || 'normal',
-                  textAlign: field.align || 'left',
-                  fontFamily: "'Courier New', Courier, monospace"
-                }}
-              >
-                {getFieldValue(field.id)}
-              </div>
-            ))}
+            {config.fields.map(field => {
+              // Transform based on alignment: left=none, center=-50%, right=-100%
+              const getTransform = () => {
+                switch (field.align) {
+                  case 'right': return 'translateX(-100%)';
+                  case 'center': return 'translateX(-50%)';
+                  default: return 'none'; // left
+                }
+              };
+              return (
+                <div
+                  key={field.id}
+                  className="field absolute"
+                  style={{
+                    left: `${field.x}%`,
+                    top: `${field.y}%`,
+                    fontSize: `${field.fontSize || 12}px`,
+                    fontWeight: field.fontWeight || 'normal',
+                    textAlign: field.align || 'left',
+                    fontFamily: config.globalFontFamily || "'Courier New', Courier, monospace",
+                    transform: getTransform()
+                  }}
+                >
+                  {getFieldValue(field.id)}
+                </div>
+              );
+            })}
           </div>
         </div>
 

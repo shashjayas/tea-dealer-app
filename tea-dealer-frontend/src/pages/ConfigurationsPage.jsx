@@ -12,20 +12,32 @@ import {
 
 const STORAGE_KEY = 'invoice_template_config';
 
+// Generate day fields for 1-31
+const DAY_FIELDS = Array.from({ length: 31 }, (_, i) => ({
+  id: `day${String(i + 1).padStart(2, '0')}`,
+  label: `Day ${String(i + 1).padStart(2, '0')}`,
+  sampleValue: i % 3 === 0 ? '45' : '-'
+}));
+
 const AVAILABLE_FIELDS = [
   { id: 'bookNumber', label: 'Book Number', sampleValue: '001' },
   { id: 'customerName', label: 'Customer Name (English)', sampleValue: 'John Doe' },
   { id: 'customerNameSinhala', label: 'Customer Name (Sinhala)', sampleValue: 'ජෝන් ඩෝ' },
   { id: 'month', label: 'Month', sampleValue: 'January' },
   { id: 'year', label: 'Year', sampleValue: '2025' },
+  // Daily collection fields
+  ...DAY_FIELDS,
   { id: 'grade1Kg', label: 'Grade 1 Kg', sampleValue: '150.50' },
   { id: 'grade2Kg', label: 'Grade 2 Kg', sampleValue: '75.25' },
   { id: 'totalKg', label: 'Total Kg', sampleValue: '225.75' },
+  { id: 'supplyDeductionKg', label: 'Supply Deduction Kg', sampleValue: '11.29' },
+  { id: 'supplyDeductionPercent', label: 'Supply Deduction %', sampleValue: '5.0' },
+  { id: 'payableKg', label: 'Payable Kg', sampleValue: '214.46' },
   { id: 'grade1Rate', label: 'Grade 1 Rate', sampleValue: '120.00' },
   { id: 'grade2Rate', label: 'Grade 2 Rate', sampleValue: '100.00' },
   { id: 'grade1Amount', label: 'Grade 1 Amount', sampleValue: '18,060.00' },
   { id: 'grade2Amount', label: 'Grade 2 Amount', sampleValue: '7,525.00' },
-  { id: 'totalAmount', label: 'Total Amount', sampleValue: '25,585.00' },
+  { id: 'totalAmount', label: 'Gross Amount', sampleValue: '25,585.00' },
   { id: 'totalDeductions', label: 'Total Deductions', sampleValue: '5,000.00' },
   { id: 'netAmount', label: 'Net Amount', sampleValue: '20,585.00' },
   { id: 'advance', label: 'Advance', sampleValue: '2,000.00' },
@@ -52,9 +64,12 @@ const ConfigurationsPage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [globalFontSize, setGlobalFontSize] = useState(12);
+  const [globalFontFamily, setGlobalFontFamily] = useState("'Courier New', Courier, monospace");
 
   const templateRef = useRef(null);
   const fileInputRef = useRef(null);
+  const containerRef = useRef(null);
 
   // Fertilizer Types State
   const [fertilizerTypes, setFertilizerTypes] = useState([]);
@@ -140,11 +155,52 @@ const ConfigurationsPage = () => {
         setTemplateImage(config.templateImage || null);
         setTemplateSize(config.templateSize || { width: 800, height: 1000 });
         setPlacedFields(config.fields || []);
+        setGlobalFontSize(config.globalFontSize || 12);
+        setGlobalFontFamily(config.globalFontFamily || "'Courier New', Courier, monospace");
       } catch (e) {
         console.error('Error loading config:', e);
       }
     }
   }, []);
+
+  // Keyboard navigation for selected field
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!selectedField || !templateRef.current) return;
+
+      const step = e.shiftKey ? 1 : 0.2; // Shift for larger steps
+      let dx = 0, dy = 0;
+
+      switch (e.key) {
+        case 'ArrowUp': dy = -step; break;
+        case 'ArrowDown': dy = step; break;
+        case 'ArrowLeft': dx = -step; break;
+        case 'ArrowRight': dx = step; break;
+        case 'Delete':
+        case 'Backspace':
+          if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+            removeField(selectedField);
+          }
+          return;
+        default: return;
+      }
+
+      e.preventDefault();
+      setPlacedFields(fields => fields.map(f => {
+        if (f.id === selectedField) {
+          return {
+            ...f,
+            x: Math.max(0, Math.min(100, f.x + dx)),
+            y: Math.max(0, Math.min(100, f.y + dy))
+          };
+        }
+        return f;
+      }));
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedField]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -261,10 +317,17 @@ const ConfigurationsPage = () => {
     const config = {
       templateImage,
       templateSize,
-      fields: placedFields
+      fields: placedFields,
+      globalFontSize,
+      globalFontFamily
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     showToast('Template configuration saved successfully', 'success');
+  };
+
+  const applyGlobalFontSize = () => {
+    setPlacedFields(fields => fields.map(f => ({ ...f, fontSize: globalFontSize })));
+    showToast('Font size applied to all fields', 'success');
   };
 
   const clearTemplate = () => {
@@ -350,6 +413,38 @@ const ConfigurationsPage = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
+                {/* Global Font Controls */}
+                <div className="flex items-center gap-1 border border-gray-200 rounded-lg px-2 py-1">
+                  <label className="text-xs text-gray-500">Font:</label>
+                  <select
+                    value={globalFontFamily}
+                    onChange={(e) => setGlobalFontFamily(e.target.value)}
+                    className="text-sm border-none outline-none bg-transparent"
+                  >
+                    <option value="'Courier New', Courier, monospace">Courier New</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                    <option value="Verdana, sans-serif">Verdana</option>
+                    <option value="'Noto Sans Sinhala', sans-serif">Noto Sans Sinhala</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1 border border-gray-200 rounded-lg px-2 py-1">
+                  <label className="text-xs text-gray-500">Size:</label>
+                  <input
+                    type="number"
+                    value={globalFontSize}
+                    onChange={(e) => setGlobalFontSize(parseInt(e.target.value) || 12)}
+                    className="w-12 text-sm border-none outline-none bg-transparent"
+                    min="8"
+                    max="32"
+                  />
+                  <button
+                    onClick={applyGlobalFontSize}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Apply All
+                  </button>
+                </div>
                 <button
                   onClick={() => setShowPreview(!showPreview)}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
@@ -425,13 +520,18 @@ const ConfigurationsPage = () => {
               </div>
 
               {/* Template Canvas */}
-              <div className="flex-1">
+              <div className="flex-1" ref={containerRef} tabIndex={0}>
                 {templateImage ? (
                   <div
                     ref={templateRef}
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
-                    onClick={() => setSelectedField(null)}
+                    onClick={(e) => {
+                      // Only deselect if clicking directly on the template background
+                      if (e.target === templateRef.current) {
+                        setSelectedField(null);
+                      }
+                    }}
                     className="relative border border-gray-300 rounded-lg overflow-hidden mx-auto"
                     style={{
                       width: Math.min(templateSize.width, 600),
@@ -445,11 +545,25 @@ const ConfigurationsPage = () => {
                   >
                     {placedFields.map(field => {
                       const fieldInfo = AVAILABLE_FIELDS.find(f => f.id === field.id);
+                      // Transform based on alignment: left=none, center=-50%, right=-100%
+                      const getTransform = () => {
+                        switch (field.align) {
+                          case 'right': return 'translateX(-100%)';
+                          case 'center': return 'translateX(-50%)';
+                          default: return 'none'; // left
+                        }
+                      };
                       return (
                         <div
                           key={field.id}
+                          tabIndex={0}
                           onMouseDown={(e) => handleFieldMouseDown(e, field)}
-                          className={`absolute transform -translate-x-1/2 cursor-grab select-none ${
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedField(field.id);
+                          }}
+                          onFocus={() => setSelectedField(field.id)}
+                          className={`absolute cursor-grab select-none outline-none ${
                             selectedField === field.id ? 'ring-2 ring-blue-500 ring-offset-1' : ''
                           }`}
                           style={{
@@ -458,7 +572,8 @@ const ConfigurationsPage = () => {
                             fontSize: `${field.fontSize}px`,
                             fontWeight: field.fontWeight,
                             textAlign: field.align,
-                            fontFamily: "'Courier New', Courier, monospace",
+                            fontFamily: globalFontFamily,
+                            transform: getTransform(),
                             backgroundColor: showPreview ? 'transparent' : 'rgba(255,255,255,0.9)',
                             padding: showPreview ? '0' : '2px 4px',
                             borderRadius: '2px',
@@ -569,6 +684,7 @@ const ConfigurationsPage = () => {
             <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
               <strong>How to use:</strong> Upload your pre-printed invoice form image, then drag fields from the left panel onto the template.
               Position them where values should print. Click a field to adjust its properties. Save when done.
+              <br /><strong>Keyboard shortcuts:</strong> Arrow keys to move selected field (Shift+Arrow for larger steps), Delete to remove.
             </div>
           </div>
         )}
