@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Save, Search, Plus, Trash2, Calendar } from 'lucide-react';
 import { useCustomerContext } from '../contexts/CustomerContext';
-import { getDeductionByCustomerAndPeriod, calculateMonthlyTotals, saveDeduction } from '../services/deductionService';
+import { getDeductionByCustomerAndPeriod, calculateMonthlyTotals, saveDeduction, getAutoArrears } from '../services/deductionService';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
 
@@ -19,6 +19,7 @@ const DeductionsPage = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [monthlyTotals, setMonthlyTotals] = useState(null);
+  const [autoArrearsInfo, setAutoArrearsInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -102,6 +103,7 @@ const DeductionsPage = () => {
       // Reset form when no customer is selected
       resetDeductionsForm();
       setMonthlyTotals(null);
+      setAutoArrearsInfo(null);
     }
   }, [selectedCustomer, selectedYear, selectedMonth]);
 
@@ -109,11 +111,16 @@ const DeductionsPage = () => {
     setLoading(true);
     // Reset form immediately when switching customers to prevent stale data
     resetDeductionsForm();
+    setAutoArrearsInfo(null);
 
     try {
-      // Calculate monthly totals
-      const totals = await calculateMonthlyTotals(selectedCustomer.id, selectedYear, selectedMonth);
+      // Calculate monthly totals and fetch auto-arrears in parallel
+      const [totals, autoArrears] = await Promise.all([
+        calculateMonthlyTotals(selectedCustomer.id, selectedYear, selectedMonth),
+        getAutoArrears(selectedCustomer.id, selectedYear, selectedMonth)
+      ]);
       setMonthlyTotals(totals);
+      setAutoArrearsInfo(autoArrears);
 
       // Load existing deductions (returns null if not found)
       const existingDeduction = await getDeductionByCustomerAndPeriod(
@@ -221,6 +228,11 @@ const DeductionsPage = () => {
 
   const calculateTotalDeductions = () => {
     let total = 0;
+    // Include auto-arrears if enabled
+    if (autoArrearsInfo?.autoArrearsEnabled && autoArrearsInfo?.autoArrearsAmount) {
+      total += parseFloat(autoArrearsInfo.autoArrearsAmount);
+    }
+    // Include manual arrears
     if (deductions.lastMonthArrears) total += parseFloat(deductions.lastMonthArrears);
     total += calculateAdvanceTotal();
     if (deductions.loanAmount) total += parseFloat(deductions.loanAmount);
@@ -457,11 +469,31 @@ const DeductionsPage = () => {
               </div>
             </div>
 
+            {/* Auto Arrears Info Banner */}
+            {autoArrearsInfo?.autoArrearsEnabled && autoArrearsInfo?.autoArrearsAmount > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold text-orange-700">Auto Arrears from Previous Month</span>
+                    <p className="text-xs text-orange-600 mt-0.5">
+                      {MONTHS[autoArrearsInfo.previousMonth - 1]} {autoArrearsInfo.previousYear} had negative net pay of Rs. {Math.abs(parseFloat(autoArrearsInfo.previousNetAmount || 0)).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-orange-800">Rs. {parseFloat(autoArrearsInfo.autoArrearsAmount).toFixed(2)}</div>
+                    <span className="text-xs text-orange-500">Will be added automatically</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Deductions Form */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-3">
-              {/* Last Month Arrears */}
+              {/* Additional Manual Arrears */}
               <div>
-                <label className="block text-xs font-medium text-rose-700 mb-1">Arrears (Rs.)</label>
+                <label className="block text-xs font-medium text-rose-700 mb-1">
+                  {autoArrearsInfo?.autoArrearsEnabled ? 'Additional Arrears (Rs.)' : 'Arrears (Rs.)'}
+                </label>
                 <input
                   type="number"
                   step="0.01"
@@ -470,6 +502,9 @@ const DeductionsPage = () => {
                   className="w-full px-2 py-1 border border-rose-300 rounded focus:ring-1 focus:ring-rose-500 outline-none text-sm bg-rose-50"
                   placeholder="0.00"
                 />
+                {autoArrearsInfo?.autoArrearsEnabled && !autoArrearsInfo?.autoArrearsAmount && (
+                  <p className="text-xs text-gray-400 mt-0.5">No auto-arrears (prev. month OK)</p>
+                )}
               </div>
 
               {/* Advance with Add button */}

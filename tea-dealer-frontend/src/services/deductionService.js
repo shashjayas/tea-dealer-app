@@ -35,3 +35,7 @@ export const deleteDeduction = async (id) => {
 export const getDeductionsByPeriod = async (year, month) => {
   return await apiCall(`/deductions/period/${year}/${month}`);
 };
+
+export const getAutoArrears = async (customerId, year, month) => {
+  return await apiCall(`/deductions/auto-arrears/${customerId}/${year}/${month}`);
+};

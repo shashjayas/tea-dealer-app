@@ -3,8 +3,11 @@ package com.teadealer.controller;
 import com.teadealer.model.Collection;
 import com.teadealer.model.Customer;
 import com.teadealer.model.Deduction;
+import com.teadealer.model.Invoice;
 import com.teadealer.model.MonthlyRate;
 import com.teadealer.model.TeaGrade;
+import com.teadealer.repository.InvoiceRepository;
+import com.teadealer.service.AppSettingsService;
 import com.teadealer.service.CollectionService;
 import com.teadealer.service.CustomerService;
 import com.teadealer.service.DeductionService;
@@ -18,10 +21,13 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/deductions")
 public class DeductionController {
+
+    private static final String AUTO_ARREARS_SETTING_KEY = "auto_arrears_carry_forward";
 
     @Autowired
     private DeductionService deductionService;
@@ -34,6 +40,12 @@ public class DeductionController {
 
     @Autowired
     private MonthlyRateService monthlyRateService;
+
+    @Autowired
+    private InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private AppSettingsService appSettingsService;
 
     @GetMapping("/customer/{customerId}/period/{year}/{month}")
     public ResponseEntity<Deduction> getDeductionByCustomerAndPeriod(
@@ -65,6 +77,52 @@ public class DeductionController {
             @PathVariable Integer year,
             @PathVariable Integer month) {
         return ResponseEntity.ok(deductionService.getDeductionsByPeriod(year, month));
+    }
+
+    @GetMapping("/auto-arrears/{customerId}/{year}/{month}")
+    public ResponseEntity<Map<String, Object>> getAutoArrears(
+            @PathVariable Long customerId,
+            @PathVariable Integer year,
+            @PathVariable Integer month) {
+        Map<String, Object> result = new HashMap<>();
+
+        // Check if auto-arrears feature is enabled
+        String autoArrearsSetting = appSettingsService.getSettingValue(AUTO_ARREARS_SETTING_KEY);
+        boolean autoArrearsEnabled = "true".equalsIgnoreCase(autoArrearsSetting);
+
+        result.put("autoArrearsEnabled", autoArrearsEnabled);
+        result.put("autoArrearsAmount", BigDecimal.ZERO);
+        result.put("previousMonth", null);
+        result.put("previousYear", null);
+        result.put("previousNetAmount", null);
+
+        if (autoArrearsEnabled) {
+            // Calculate previous month
+            int prevMonth = month - 1;
+            int prevYear = year;
+            if (prevMonth < 1) {
+                prevMonth = 12;
+                prevYear = year - 1;
+            }
+
+            result.put("previousMonth", prevMonth);
+            result.put("previousYear", prevYear);
+
+            // Get previous month's invoice
+            Optional<Invoice> prevInvoiceOpt = invoiceRepository.findByCustomerIdAndYearAndMonth(customerId, prevYear, prevMonth);
+            if (prevInvoiceOpt.isPresent()) {
+                Invoice prevInvoice = prevInvoiceOpt.get();
+                BigDecimal prevNetAmount = prevInvoice.getNetAmount();
+                result.put("previousNetAmount", prevNetAmount);
+
+                // If previous net amount is negative, it becomes arrears (as positive amount)
+                if (prevNetAmount != null && prevNetAmount.compareTo(BigDecimal.ZERO) < 0) {
+                    result.put("autoArrearsAmount", prevNetAmount.abs());
+                }
+            }
+        }
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/calculate/{customerId}/{year}/{month}")
