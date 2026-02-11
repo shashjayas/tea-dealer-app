@@ -40,13 +40,14 @@ export const deleteSetting = async (key) => {
   });
 };
 
-// Theme-specific helpers
+// Setting keys
 export const SETTING_KEYS = {
   LOGIN_BACKGROUND: 'login_background',
   THEME_COLOR: 'theme_color',
   DEALER_NAME: 'dealer_name',
   REGISTRATION_NUMBER: 'registration_number',
   DEALER_ADDRESS: 'dealer_address',
+  AUTO_ARREARS_CARRY_FORWARD: 'auto_arrears_carry_forward',
 };
 
 export const getLoginBackground = async () => {
@@ -77,4 +78,14 @@ export const saveDealerInfo = async (name, regNumber, address) => {
     saveSetting(SETTING_KEYS.REGISTRATION_NUMBER, regNumber || ''),
     saveSetting(SETTING_KEYS.DEALER_ADDRESS, address || ''),
   ]);
+};
+
+// Auto arrears carry-forward helpers
+export const getAutoArrearsEnabled = async () => {
+  const value = await getSettingValue(SETTING_KEYS.AUTO_ARREARS_CARRY_FORWARD);
+  return value === 'true';
+};
+
+export const saveAutoArrearsEnabled = async (enabled) => {
+  return await saveSetting(SETTING_KEYS.AUTO_ARREARS_CARRY_FORWARD, enabled ? 'true' : 'false');
 };

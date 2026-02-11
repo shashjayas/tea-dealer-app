@@ -1001,7 +1001,7 @@ const InvoicesPage = () => {
                     {/* Main Content - Calendar & Calculations */}
                     <div className="flex gap-3 mb-2">
                       {/* Left: Calendar Grid */}
-                      <div className="w-72 border border-gray-300 rounded">
+                      <div className="w-72 border border-gray-300 rounded flex flex-col">
                         <div className="bg-gray-100 px-2 py-1 border-b border-gray-200 text-center font-semibold text-gray-700 text-sm">
                           {MONTHS[selectedMonth - 1]} {selectedYear}
                         </div>
@@ -1059,36 +1059,106 @@ const InvoicesPage = () => {
                             );
                           })}
                         </div>
+                        {/* Grade Summary at bottom of calendar */}
+                        <div className="bg-gray-50 border-t border-gray-300 text-xs">
+                          {(() => {
+                            const g1Kg = parseFloat(currentInvoice.grade1Kg || 0);
+                            const g2Kg = parseFloat(currentInvoice.grade2Kg || 0);
+                            const dedPct = parseFloat(currentInvoice.supplyDeductionPercentage || 0);
+                            const g1Ded = (g1Kg * dedPct) / 100;
+                            const g2Ded = (g2Kg * dedPct) / 100;
+                            const g1Pay = g1Kg - g1Ded;
+                            const g2Pay = g2Kg - g2Ded;
+                            return (
+                              <>
+                                <div className="grid grid-cols-2 divide-x divide-gray-300">
+                                  <div className="px-2 py-1">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-500">G1:</span>
+                                      <span className="font-medium">{g1Kg.toFixed(1)}</span>
+                                    </div>
+                                    {dedPct > 0 && (
+                                      <>
+                                        <div className="flex justify-between text-orange-600">
+                                          <span>-{dedPct}%:</span>
+                                          <span>-{g1Ded.toFixed(1)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-green-700 font-semibold border-t border-gray-200 pt-0.5">
+                                          <span>Pay:</span>
+                                          <span>{g1Pay.toFixed(1)}</span>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                  <div className="px-2 py-1">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-500">G2:</span>
+                                      <span className="font-medium">{g2Kg.toFixed(1)}</span>
+                                    </div>
+                                    {dedPct > 0 && (
+                                      <>
+                                        <div className="flex justify-between text-orange-600">
+                                          <span>-{dedPct}%:</span>
+                                          <span>-{g2Ded.toFixed(1)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-green-700 font-semibold border-t border-gray-200 pt-0.5">
+                                          <span>Pay:</span>
+                                          <span>{g2Pay.toFixed(1)}</span>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
 
                       {/* Right: Calculations & Deductions */}
                       <div className="flex-1 flex flex-col gap-3">
                         {/* Amount Calculations */}
                         <div className="border border-gray-300 rounded">
-                          <table className="w-full text-sm">
-                            <tbody>
-                              <tr className="border-b border-gray-200">
-                                <td className="px-3 py-1.5 text-gray-600">Grade 1 Total</td>
-                                <td className="px-3 py-1.5 text-right">{parseFloat(currentInvoice.grade1Kg || 0).toFixed(2)} kg</td>
-                                <td className="px-3 py-1.5 text-right font-semibold">{parseFloat(currentInvoice.grade1Amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                              </tr>
-                              <tr className="border-b border-gray-200">
-                                <td className="px-3 py-1.5 text-gray-600">Grade 2 Total</td>
-                                <td className="px-3 py-1.5 text-right">{parseFloat(currentInvoice.grade2Kg || 0).toFixed(2)} kg</td>
-                                <td className="px-3 py-1.5 text-right font-semibold">{parseFloat(currentInvoice.grade2Amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                              </tr>
-                              <tr className="border-b border-gray-200 bg-orange-50">
-                                <td className="px-3 py-1.5 text-orange-700">Supply Ded. ({parseFloat(currentInvoice.supplyDeductionPercentage || 0).toFixed(1)}%)</td>
-                                <td className="px-3 py-1.5 text-right text-orange-700">-{parseFloat(currentInvoice.supplyDeductionKg || 0).toFixed(2)} kg</td>
-                                <td className="px-3 py-1.5"></td>
-                              </tr>
-                              <tr className="bg-blue-50">
-                                <td className="px-3 py-1.5 font-bold text-blue-800">Gross Amount</td>
-                                <td className="px-3 py-1.5 text-right font-bold text-blue-800">{parseFloat(currentInvoice.payableKg || 0).toFixed(2)} kg</td>
-                                <td className="px-3 py-1.5 text-right font-bold text-blue-800">{parseFloat(currentInvoice.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                              </tr>
-                            </tbody>
-                          </table>
+                          {(() => {
+                            const g1Kg = parseFloat(currentInvoice.grade1Kg || 0);
+                            const g2Kg = parseFloat(currentInvoice.grade2Kg || 0);
+                            const dedPct = parseFloat(currentInvoice.supplyDeductionPercentage || 0);
+                            const g1Ded = (g1Kg * dedPct) / 100;
+                            const g2Ded = (g2Kg * dedPct) / 100;
+                            const g1PayKg = g1Kg - g1Ded;
+                            const g2PayKg = g2Kg - g2Ded;
+                            const g1Rate = parseFloat(currentInvoice.grade1Rate || 0);
+                            const g2Rate = parseFloat(currentInvoice.grade2Rate || 0);
+                            const g1Amount = g1PayKg * g1Rate;
+                            const g2Amount = g2PayKg * g2Rate;
+                            return (
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  <tr className="border-b border-gray-200">
+                                    <td className="px-3 py-1 text-gray-600">Grade 1</td>
+                                    <td className="px-3 py-1 text-right text-gray-500">{g1Kg.toFixed(2)} kg</td>
+                                    <td className="px-3 py-1 text-right text-orange-600">-{g1Ded.toFixed(2)}</td>
+                                    <td className="px-3 py-1 text-right font-medium text-green-700">{g1PayKg.toFixed(2)} kg</td>
+                                    <td className="px-3 py-1 text-right font-semibold">{g1Amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                  <tr className="border-b border-gray-200">
+                                    <td className="px-3 py-1 text-gray-600">Grade 2</td>
+                                    <td className="px-3 py-1 text-right text-gray-500">{g2Kg.toFixed(2)} kg</td>
+                                    <td className="px-3 py-1 text-right text-orange-600">-{g2Ded.toFixed(2)}</td>
+                                    <td className="px-3 py-1 text-right font-medium text-green-700">{g2PayKg.toFixed(2)} kg</td>
+                                    <td className="px-3 py-1 text-right font-semibold">{g2Amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                  <tr className="bg-blue-50">
+                                    <td className="px-3 py-1.5 font-bold text-blue-800">Gross</td>
+                                    <td className="px-3 py-1.5 text-right text-gray-500">{(g1Kg + g2Kg).toFixed(2)}</td>
+                                    <td className="px-3 py-1.5 text-right text-orange-600">-{(g1Ded + g2Ded).toFixed(2)}</td>
+                                    <td className="px-3 py-1.5 text-right font-bold text-blue-800">{parseFloat(currentInvoice.payableKg || 0).toFixed(2)} kg</td>
+                                    <td className="px-3 py-1.5 text-right font-bold text-blue-800">{parseFloat(currentInvoice.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            );
+                          })()}
                         </div>
 
                         {/* Deductions */}
