@@ -36,6 +36,11 @@ public class InvoiceService {
     @Autowired
     private DeductionService deductionService;
 
+    @Autowired
+    private AppSettingsService appSettingsService;
+
+    private static final String AUTO_ARREARS_SETTING_KEY = "auto_arrears_carry_forward";
+
     public Optional<Invoice> getInvoiceById(Long id) {
         return invoiceRepository.findById(id);
     }
@@ -180,9 +185,10 @@ public class InvoiceService {
 
         // Get deductions
         Optional<Deduction> deductionOpt = deductionService.getDeductionByCustomerAndPeriod(customerId, year, month);
+        BigDecimal manualArrears = BigDecimal.ZERO;
         if (deductionOpt.isPresent()) {
             Deduction deduction = deductionOpt.get();
-            invoice.setLastMonthArrears(deduction.getLastMonthArrears());
+            manualArrears = deduction.getLastMonthArrears() != null ? deduction.getLastMonthArrears() : BigDecimal.ZERO;
             invoice.setAdvanceAmount(deduction.getAdvanceAmount());
             invoice.setLoanAmount(deduction.getLoanAmount());
             invoice.setFertilizer1Amount(deduction.getFertilizer1Amount());
@@ -193,6 +199,36 @@ public class InvoiceService {
             invoice.setOtherDeductions(deduction.getOtherDeductions());
             invoice.setOtherDeductionsNote(deduction.getOtherDeductionsNote());
         }
+
+        // Check for automatic arrears carry-forward from previous month's negative net pay
+        BigDecimal autoArrears = BigDecimal.ZERO;
+        String autoArrearsSetting = appSettingsService.getSettingValue(AUTO_ARREARS_SETTING_KEY);
+        boolean autoArrearsEnabled = "true".equalsIgnoreCase(autoArrearsSetting);
+
+        if (autoArrearsEnabled) {
+            // Calculate previous month
+            int prevMonth = month - 1;
+            int prevYear = year;
+            if (prevMonth < 1) {
+                prevMonth = 12;
+                prevYear = year - 1;
+            }
+
+            // Get previous month's invoice
+            Optional<Invoice> prevInvoiceOpt = invoiceRepository.findByCustomerIdAndYearAndMonth(customerId, prevYear, prevMonth);
+            if (prevInvoiceOpt.isPresent()) {
+                Invoice prevInvoice = prevInvoiceOpt.get();
+                BigDecimal prevNetAmount = prevInvoice.getNetAmount();
+                // If previous net amount is negative, it becomes arrears (as positive amount)
+                if (prevNetAmount != null && prevNetAmount.compareTo(BigDecimal.ZERO) < 0) {
+                    autoArrears = prevNetAmount.abs();
+                }
+            }
+        }
+
+        // Set total arrears (manual + auto)
+        BigDecimal totalArrears = manualArrears.add(autoArrears);
+        invoice.setLastMonthArrears(totalArrears.compareTo(BigDecimal.ZERO) > 0 ? totalArrears : null);
 
         // Set status
         invoice.setStatus(Invoice.InvoiceStatus.GENERATED);

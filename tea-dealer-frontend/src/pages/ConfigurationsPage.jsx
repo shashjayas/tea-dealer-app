@@ -14,7 +14,9 @@ import {
   saveLoginBackground as saveLoginBgToDb,
   clearLoginBackground as clearLoginBgFromDb,
   getDealerInfo,
-  saveDealerInfo
+  saveDealerInfo,
+  getAutoArrearsEnabled,
+  saveAutoArrearsEnabled
 } from '../services/settingsService';
 import {
   getUsers,
@@ -98,6 +100,7 @@ const ConfigurationsPage = ({ currentUser }) => {
   const [dealerName, setDealerName] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [dealerAddress, setDealerAddress] = useState('');
+  const [autoArrearsEnabled, setAutoArrearsEnabled] = useState(false);
   const themeFileInputRef = useRef(null);
 
   // User Management State
@@ -117,9 +120,10 @@ const ConfigurationsPage = ({ currentUser }) => {
   useEffect(() => {
     const loadThemeSettings = async () => {
       try {
-        const [bg, dealerInfo] = await Promise.all([
+        const [bg, dealerInfo, autoArrears] = await Promise.all([
           getLoginBackground(),
-          getDealerInfo()
+          getDealerInfo(),
+          getAutoArrearsEnabled()
         ]);
         if (bg) {
           setLoginBackground(bg);
@@ -129,6 +133,7 @@ const ConfigurationsPage = ({ currentUser }) => {
           setRegistrationNumber(dealerInfo.regNumber || '');
           setDealerAddress(dealerInfo.address || '');
         }
+        setAutoArrearsEnabled(autoArrears);
       } catch (e) {
         console.error('Error loading theme settings:', e);
       }
@@ -296,11 +301,14 @@ const ConfigurationsPage = ({ currentUser }) => {
       // Save dealer info
       promises.push(saveDealerInfo(dealerName, registrationNumber, dealerAddress));
 
+      // Save invoice settings
+      promises.push(saveAutoArrearsEnabled(autoArrearsEnabled));
+
       await Promise.all(promises);
-      showToast('Theme settings saved successfully', 'success');
+      showToast('Settings saved successfully', 'success');
     } catch (error) {
-      console.error('Error saving theme settings:', error);
-      showToast('Error saving theme settings', 'error');
+      console.error('Error saving settings:', error);
+      showToast('Error saving settings', 'error');
     }
   };
 
@@ -1094,6 +1102,29 @@ const ConfigurationsPage = ({ currentUser }) => {
               </div>
             </div>
 
+            {/* Invoice Settings Section */}
+            <div className="border border-gray-200 rounded-lg p-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Invoice Settings</h3>
+              <div className="flex items-start gap-4">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoArrearsEnabled}
+                    onChange={(e) => setAutoArrearsEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </label>
+                <div>
+                  <span className="text-sm font-medium text-gray-700">Auto Arrears Carry-Forward</span>
+                  <p className="text-sm text-gray-500 mt-1">
+                    When enabled, if a customer has a negative net pay (balance due) in an invoice,
+                    that amount will automatically be added as arrears in the next month's invoice.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Save Button */}
             <div className="mt-6 pt-4 border-t border-gray-200">
               <button
@@ -1101,7 +1132,7 @@ const ConfigurationsPage = ({ currentUser }) => {
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
               >
                 <Save className="w-4 h-4" />
-                Save Theme Settings
+                Save Settings
               </button>
             </div>
           </div>
