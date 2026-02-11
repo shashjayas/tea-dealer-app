@@ -31,7 +31,7 @@ const App = () => {
             {currentPage === 'deductions' && <DeductionsPage />}
             {currentPage === 'fertilizer' && <FertilizerManagementPage />}
             {currentPage === 'invoices' && <InvoicesPage />}
-            {currentPage === 'configurations' && <ConfigurationsPage />}
+            {currentPage === 'configurations' && <ConfigurationsPage currentUser={user} />}
             {currentPage !== 'dashboard' && currentPage !== 'customers' && currentPage !== 'collections' && currentPage !== 'rates' && currentPage !== 'deductions' && currentPage !== 'fertilizer' && currentPage !== 'invoices' && currentPage !== 'configurations' && (
               <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                 <div className="text-6xl mb-4">🚧</div>

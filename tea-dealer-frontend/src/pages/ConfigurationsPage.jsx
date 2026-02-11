@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical, Leaf, Plus, Edit2, X } from 'lucide-react';
+import { FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical, Leaf, Plus, Edit2, X, Palette, Image as ImageIcon, Users } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -9,8 +9,23 @@ import {
   updateFertilizerType,
   deleteFertilizerType
 } from '../services/fertilizerService';
+import {
+  getLoginBackground,
+  saveLoginBackground as saveLoginBgToDb,
+  clearLoginBackground as clearLoginBgFromDb,
+  getDealerInfo,
+  saveDealerInfo
+} from '../services/settingsService';
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  ROLES
+} from '../services/userService';
 
 const STORAGE_KEY = 'invoice_template_config';
+const CACHE_KEY = 'login_background_cache';
 
 // Generate day fields for 1-31
 const DAY_FIELDS = Array.from({ length: 31 }, (_, i) => ({
@@ -52,7 +67,7 @@ const AVAILABLE_FIELDS = [
   { id: 'agrochemicals', label: 'Agrochemicals', sampleValue: '0.00' },
 ];
 
-const ConfigurationsPage = () => {
+const ConfigurationsPage = ({ currentUser }) => {
   const { toasts, showToast, removeToast } = useToast();
   const [activeSection, setActiveSection] = useState('invoiceTemplate');
 
@@ -78,12 +93,118 @@ const ConfigurationsPage = () => {
   const [typeForm, setTypeForm] = useState({ name: '', bagSizes: '', unit: 'kg', active: true });
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
+  // Theme Settings State
+  const [loginBackground, setLoginBackground] = useState(null);
+  const [dealerName, setDealerName] = useState('');
+  const [registrationNumber, setRegistrationNumber] = useState('');
+  const [dealerAddress, setDealerAddress] = useState('');
+  const themeFileInputRef = useRef(null);
+
+  // User Management State
+  const [users, setUsers] = useState([]);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [userForm, setUserForm] = useState({ username: '', password: '', email: '', role: 'DEALER' });
+
   // Load fertilizer types
   useEffect(() => {
     if (activeSection === 'fertilizerTypes') {
       loadFertilizerTypes();
     }
   }, [activeSection]);
+
+  // Load theme settings from database
+  useEffect(() => {
+    const loadThemeSettings = async () => {
+      try {
+        const [bg, dealerInfo] = await Promise.all([
+          getLoginBackground(),
+          getDealerInfo()
+        ]);
+        if (bg) {
+          setLoginBackground(bg);
+        }
+        if (dealerInfo) {
+          setDealerName(dealerInfo.name || '');
+          setRegistrationNumber(dealerInfo.regNumber || '');
+          setDealerAddress(dealerInfo.address || '');
+        }
+      } catch (e) {
+        console.error('Error loading theme settings:', e);
+      }
+    };
+    if (activeSection === 'themeSettings') {
+      loadThemeSettings();
+    }
+  }, [activeSection]);
+
+  // Load users
+  useEffect(() => {
+    if (activeSection === 'userManagement') {
+      loadUsers();
+    }
+  }, [activeSection]);
+
+  const loadUsers = async () => {
+    try {
+      const userList = await getUsers();
+      setUsers(userList || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      showToast('Error loading users', 'error');
+    }
+  };
+
+  const handleSaveUser = async () => {
+    if (!userForm.username || (!editingUser && !userForm.password)) {
+      showToast('Please fill in required fields', 'warning');
+      return;
+    }
+
+    try {
+      if (editingUser) {
+        await updateUser(editingUser.id, userForm);
+        showToast('User updated successfully', 'success');
+      } else {
+        await createUser(userForm);
+        showToast('User created successfully', 'success');
+      }
+      setShowUserForm(false);
+      setEditingUser(null);
+      setUserForm({ username: '', password: '', email: '', role: 'DEALER' });
+      loadUsers();
+    } catch (error) {
+      showToast(error.message || 'Error saving user', 'error');
+    }
+  };
+
+  const handleEditUser = (user) => {
+    setEditingUser(user);
+    setUserForm({
+      username: user.username,
+      password: '',
+      email: user.email || '',
+      role: user.role
+    });
+    setShowUserForm(true);
+  };
+
+  const handleDeleteUser = (user) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete User',
+      message: `Are you sure you want to delete user "${user.username}"?`,
+      onConfirm: async () => {
+        try {
+          await deleteUser(user.id, currentUser?.id);
+          showToast('User deleted successfully', 'success');
+          loadUsers();
+        } catch (error) {
+          showToast(error.message || 'Error deleting user', 'error');
+        }
+      }
+    });
+  };
 
   const loadFertilizerTypes = async () => {
     try {
@@ -144,6 +265,56 @@ const ConfigurationsPage = () => {
         }
       }
     });
+  };
+
+  // Theme Settings Handlers
+  const handleLoginBgUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Image size should be less than 5MB', 'warning');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setLoginBackground(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const saveThemeSettings = async () => {
+    try {
+      const promises = [];
+
+      if (loginBackground) {
+        promises.push(saveLoginBgToDb(loginBackground));
+        // Also save to localStorage cache for fast loading
+        localStorage.setItem(CACHE_KEY, loginBackground);
+      }
+
+      // Save dealer info
+      promises.push(saveDealerInfo(dealerName, registrationNumber, dealerAddress));
+
+      await Promise.all(promises);
+      showToast('Theme settings saved successfully', 'success');
+    } catch (error) {
+      console.error('Error saving theme settings:', error);
+      showToast('Error saving theme settings', 'error');
+    }
+  };
+
+  const clearLoginBackground = async () => {
+    try {
+      await clearLoginBgFromDb();
+      // Also clear from localStorage cache
+      localStorage.removeItem(CACHE_KEY);
+      setLoginBackground(null);
+      showToast('Login background removed', 'success');
+    } catch (error) {
+      console.error('Error removing login background:', error);
+      showToast('Error removing login background', 'error');
+    }
   };
 
   // Load saved configuration
@@ -378,6 +549,28 @@ const ConfigurationsPage = () => {
             >
               <Leaf className="w-4 h-4" />
               Fertilizer Types
+            </button>
+            <button
+              onClick={() => setActiveSection('themeSettings')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === 'themeSettings'
+                  ? 'border-green-600 text-green-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Palette className="w-4 h-4" />
+              Theme Settings
+            </button>
+            <button
+              onClick={() => setActiveSection('userManagement')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === 'userManagement'
+                  ? 'border-green-600 text-green-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              User Management
             </button>
           </div>
         </div>
@@ -789,6 +982,243 @@ const ConfigurationsPage = () => {
                   )) : (
                     <tr>
                       <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No fertilizer types defined. Add one to get started.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Theme Settings Section */}
+        {activeSection === 'themeSettings' && (
+          <div className="p-4">
+            <p className="text-gray-600 mb-6">Customize the appearance of your application.</p>
+
+            {/* Login Background */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <ImageIcon className="w-5 h-5 text-gray-600" />
+                <h3 className="text-lg font-semibold text-gray-800">Login Page Background</h3>
+              </div>
+
+              <div className="flex gap-6">
+                {/* Preview */}
+                <div className="w-64 h-40 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                  {loginBackground ? (
+                    <img
+                      src={loginBackground}
+                      alt="Login background preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center text-gray-400">
+                      <ImageIcon className="w-8 h-8 mx-auto mb-1" />
+                      <span className="text-sm">No image</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Controls */}
+                <div className="flex-1">
+                  <p className="text-sm text-gray-500 mb-3">
+                    Upload an image to use as the login page background. Recommended size: 1920x1080 or larger.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      ref={themeFileInputRef}
+                      onChange={handleLoginBgUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => themeFileInputRef.current?.click()}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Upload Image
+                    </button>
+                    {loginBackground && (
+                      <button
+                        onClick={clearLoginBackground}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm font-medium"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Max file size: 5MB. Supported formats: JPG, PNG, WebP</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Dealer Info Section */}
+            <div className="border border-gray-200 rounded-lg p-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Login Page Footer Info</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                This information will be displayed in the footer of the login page.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dealer Name</label>
+                  <input
+                    type="text"
+                    value={dealerName}
+                    onChange={(e) => setDealerName(e.target.value)}
+                    placeholder="e.g., ABC Tea Traders"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-green-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
+                  <input
+                    type="text"
+                    value={registrationNumber}
+                    onChange={(e) => setRegistrationNumber(e.target.value)}
+                    placeholder="e.g., REG-2024-001"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-green-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={dealerAddress}
+                    onChange={(e) => setDealerAddress(e.target.value)}
+                    placeholder="e.g., No 10, Main Street, Colombo"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-green-500 outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={saveThemeSettings}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+              >
+                <Save className="w-4 h-4" />
+                Save Theme Settings
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* User Management Section */}
+        {activeSection === 'userManagement' && (
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-gray-600">Manage user accounts and roles.</p>
+              <button
+                onClick={() => { setShowUserForm(true); setEditingUser(null); setUserForm({ username: '', password: '', email: '', role: 'DEALER' }); }}
+                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                <Plus className="w-4 h-4" /> Add User
+              </button>
+            </div>
+
+            {/* User Form Modal */}
+            {showUserForm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-96">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">{editingUser ? 'Edit' : 'Add'} User</h3>
+                    <button onClick={() => setShowUserForm(false)} className="text-gray-500 hover:text-gray-700">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                      <input
+                        type="text"
+                        value={userForm.username}
+                        onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                        placeholder="Enter username"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Password {editingUser ? '(leave blank to keep current)' : '*'}
+                      </label>
+                      <input
+                        type="password"
+                        value={userForm.password}
+                        onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                        placeholder={editingUser ? 'Enter new password' : 'Enter password'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={userForm.email}
+                        onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                        placeholder="Enter email"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                      <select
+                        value={userForm.role}
+                        onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                      >
+                        <option value={ROLES.DEALER}>Tea Dealer</option>
+                        <option value={ROLES.SUPER_ADMIN}>Super Admin</option>
+                      </select>
+                    </div>
+                    <button onClick={handleSaveUser} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                      <Save className="w-4 h-4" /> Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Users Table */}
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Username</th>
+                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Email</th>
+                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Role</th>
+                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.length > 0 ? users.map(user => (
+                    <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium">{user.username}</td>
+                      <td className="px-4 py-3 text-gray-600">{user.email || '-'}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          user.role === 'SUPER_ADMIN'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Tea Dealer'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button onClick={() => handleEditUser(user)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-1">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteUser(user)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No users found. Add one to get started.</td>
                     </tr>
                   )}
                 </tbody>
