@@ -1,5 +1,11 @@
 import { TrendingUp, Users, Package, DollarSign, MinusCircle, FileText, Eye, Settings, Leaf } from 'lucide-react';
 
+// Role constants
+export const ROLES = {
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  DEALER: 'DEALER',
+};
+
 export const menuItems = [
   { label: 'Dashboard', icon: TrendingUp, page: 'dashboard' },
   { label: 'Manage Customers', icon: Users, page: 'customers' },
@@ -9,5 +15,5 @@ export const menuItems = [
   { label: 'Fertilizer', icon: Leaf, page: 'fertilizer' },
   { label: 'Invoices', icon: FileText, page: 'invoices' },
   { label: 'View Reports', icon: Eye, page: 'reports' },
-  { label: 'Configurations', icon: Settings, page: 'configurations' },
+  { label: 'Configurations', icon: Settings, page: 'configurations', requiredRole: ROLES.SUPER_ADMIN },
 ];
