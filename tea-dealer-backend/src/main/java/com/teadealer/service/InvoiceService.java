@@ -40,6 +40,15 @@ public class InvoiceService {
     private AppSettingsService appSettingsService;
 
     private static final String AUTO_ARREARS_SETTING_KEY = "auto_arrears_carry_forward";
+    private static final String STAMP_FEE_MODE_KEY = "stamp_fee_mode";
+    private static final String STAMP_FEE_NET_PAY_THRESHOLD_KEY = "stamp_fee_net_pay_threshold";
+    private static final String STAMP_FEE_SUPPLY_KG_THRESHOLD_KEY = "stamp_fee_supply_kg_threshold";
+
+    // Stamp fee modes
+    private static final String STAMP_FEE_MODE_INCLUDE_ALL = "include_all";
+    private static final String STAMP_FEE_MODE_EXCLUDE_NO_SUPPLY = "exclude_no_supply";
+    private static final String STAMP_FEE_MODE_EXCLUDE_NET_PAY_ABOVE = "exclude_net_pay_above";
+    private static final String STAMP_FEE_MODE_EXCLUDE_SUPPLY_MORE_THAN = "exclude_supply_more_than";
 
     public Optional<Invoice> getInvoiceById(Long id) {
         return invoiceRepository.findById(id);
@@ -180,15 +189,28 @@ public class InvoiceService {
         invoice.setTransportDeduction(transportDeduction);
         invoice.setTransportExempt(isTransportExempt);
 
-        // Set stamp fee
-        invoice.setStampFee(monthlyRate.getStampFee());
-
-        // Get deductions
+        // Get deductions first (needed for stamp fee calculation)
         Optional<Deduction> deductionOpt = deductionService.getDeductionByCustomerAndPeriod(customerId, year, month);
         BigDecimal manualArrears = BigDecimal.ZERO;
+        BigDecimal advanceAmount = BigDecimal.ZERO;
+        BigDecimal loanAmount = BigDecimal.ZERO;
+        BigDecimal fertilizer1Amount = BigDecimal.ZERO;
+        BigDecimal fertilizer2Amount = BigDecimal.ZERO;
+        BigDecimal teaPacketsTotal = BigDecimal.ZERO;
+        BigDecimal agrochemicalsAmount = BigDecimal.ZERO;
+        BigDecimal otherDeductions = BigDecimal.ZERO;
+
         if (deductionOpt.isPresent()) {
             Deduction deduction = deductionOpt.get();
             manualArrears = deduction.getLastMonthArrears() != null ? deduction.getLastMonthArrears() : BigDecimal.ZERO;
+            advanceAmount = deduction.getAdvanceAmount() != null ? deduction.getAdvanceAmount() : BigDecimal.ZERO;
+            loanAmount = deduction.getLoanAmount() != null ? deduction.getLoanAmount() : BigDecimal.ZERO;
+            fertilizer1Amount = deduction.getFertilizer1Amount() != null ? deduction.getFertilizer1Amount() : BigDecimal.ZERO;
+            fertilizer2Amount = deduction.getFertilizer2Amount() != null ? deduction.getFertilizer2Amount() : BigDecimal.ZERO;
+            teaPacketsTotal = deduction.getTeaPacketsTotal() != null ? deduction.getTeaPacketsTotal() : BigDecimal.ZERO;
+            agrochemicalsAmount = deduction.getAgrochemicalsAmount() != null ? deduction.getAgrochemicalsAmount() : BigDecimal.ZERO;
+            otherDeductions = deduction.getOtherDeductions() != null ? deduction.getOtherDeductions() : BigDecimal.ZERO;
+
             invoice.setAdvanceAmount(deduction.getAdvanceAmount());
             invoice.setLoanAmount(deduction.getLoanAmount());
             invoice.setFertilizer1Amount(deduction.getFertilizer1Amount());
@@ -229,6 +251,73 @@ public class InvoiceService {
         // Set total arrears (manual + auto)
         BigDecimal totalArrears = manualArrears.add(autoArrears);
         invoice.setLastMonthArrears(totalArrears.compareTo(BigDecimal.ZERO) > 0 ? totalArrears : null);
+
+        // Get stamp fee settings and apply conditionally
+        BigDecimal stampFee = monthlyRate.getStampFee() != null ? monthlyRate.getStampFee() : BigDecimal.ZERO;
+        String stampFeeMode = appSettingsService.getSettingValue(STAMP_FEE_MODE_KEY);
+        if (stampFeeMode == null) {
+            stampFeeMode = STAMP_FEE_MODE_INCLUDE_ALL;
+        }
+
+        boolean applyStampFee = true;
+
+        switch (stampFeeMode) {
+            case STAMP_FEE_MODE_EXCLUDE_NO_SUPPLY:
+                // Exclude stamp fee if no supply (totalKg is 0)
+                if (totalKg.compareTo(BigDecimal.ZERO) == 0) {
+                    applyStampFee = false;
+                }
+                break;
+
+            case STAMP_FEE_MODE_EXCLUDE_NET_PAY_ABOVE:
+                // Exclude stamp fee if net pay (before stamp fee) exceeds threshold
+                String netPayThresholdStr = appSettingsService.getSettingValue(STAMP_FEE_NET_PAY_THRESHOLD_KEY);
+                BigDecimal netPayThreshold = BigDecimal.ZERO;
+                if (netPayThresholdStr != null && !netPayThresholdStr.isEmpty()) {
+                    try {
+                        netPayThreshold = new BigDecimal(netPayThresholdStr);
+                    } catch (NumberFormatException ignored) {}
+                }
+                // Calculate preliminary net pay without stamp fee (include all other deductions)
+                BigDecimal preliminaryDeductions = BigDecimal.ZERO;
+                preliminaryDeductions = preliminaryDeductions.add(totalArrears);
+                preliminaryDeductions = preliminaryDeductions.add(advanceAmount);
+                preliminaryDeductions = preliminaryDeductions.add(loanAmount);
+                preliminaryDeductions = preliminaryDeductions.add(fertilizer1Amount);
+                preliminaryDeductions = preliminaryDeductions.add(fertilizer2Amount);
+                preliminaryDeductions = preliminaryDeductions.add(teaPacketsTotal);
+                preliminaryDeductions = preliminaryDeductions.add(agrochemicalsAmount);
+                preliminaryDeductions = preliminaryDeductions.add(transportDeduction);
+                preliminaryDeductions = preliminaryDeductions.add(otherDeductions);
+                BigDecimal preliminaryNetPay = totalAmount.subtract(preliminaryDeductions);
+                if (preliminaryNetPay.compareTo(netPayThreshold) > 0) {
+                    applyStampFee = false;
+                }
+                break;
+
+            case STAMP_FEE_MODE_EXCLUDE_SUPPLY_MORE_THAN:
+                // Exclude stamp fee if total supply exceeds threshold
+                String supplyThresholdStr = appSettingsService.getSettingValue(STAMP_FEE_SUPPLY_KG_THRESHOLD_KEY);
+                BigDecimal supplyThreshold = BigDecimal.ZERO;
+                if (supplyThresholdStr != null && !supplyThresholdStr.isEmpty()) {
+                    try {
+                        supplyThreshold = new BigDecimal(supplyThresholdStr);
+                    } catch (NumberFormatException ignored) {}
+                }
+                if (totalKg.compareTo(supplyThreshold) > 0) {
+                    applyStampFee = false;
+                }
+                break;
+
+            case STAMP_FEE_MODE_INCLUDE_ALL:
+            default:
+                // Always apply stamp fee
+                applyStampFee = true;
+                break;
+        }
+
+        // Set stamp fee based on condition
+        invoice.setStampFee(applyStampFee ? stampFee : BigDecimal.ZERO);
 
         // Set status
         invoice.setStatus(Invoice.InvoiceStatus.GENERATED);

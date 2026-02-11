@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical, Leaf, Plus, Edit2, X, Palette, Image as ImageIcon, Users } from 'lucide-react';
+import { FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical, Leaf, Plus, Edit2, X, Palette, Image as ImageIcon, Users, Receipt } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -16,7 +16,10 @@ import {
   getDealerInfo,
   saveDealerInfo,
   getAutoArrearsEnabled,
-  saveAutoArrearsEnabled
+  saveAutoArrearsEnabled,
+  getStampFeeSettings,
+  saveStampFeeSettings,
+  STAMP_FEE_MODES
 } from '../services/settingsService';
 import {
   getUsers,
@@ -100,8 +103,13 @@ const ConfigurationsPage = ({ currentUser }) => {
   const [dealerName, setDealerName] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [dealerAddress, setDealerAddress] = useState('');
-  const [autoArrearsEnabled, setAutoArrearsEnabled] = useState(false);
   const themeFileInputRef = useRef(null);
+
+  // Billing Settings State
+  const [autoArrearsEnabled, setAutoArrearsEnabled] = useState(false);
+  const [stampFeeMode, setStampFeeMode] = useState(STAMP_FEE_MODES.INCLUDE_ALL);
+  const [stampFeeNetPayThreshold, setStampFeeNetPayThreshold] = useState(0);
+  const [stampFeeSupplyKgThreshold, setStampFeeSupplyKgThreshold] = useState(0);
 
   // User Management State
   const [users, setUsers] = useState([]);
@@ -120,10 +128,9 @@ const ConfigurationsPage = ({ currentUser }) => {
   useEffect(() => {
     const loadThemeSettings = async () => {
       try {
-        const [bg, dealerInfo, autoArrears] = await Promise.all([
+        const [bg, dealerInfo] = await Promise.all([
           getLoginBackground(),
-          getDealerInfo(),
-          getAutoArrearsEnabled()
+          getDealerInfo()
         ]);
         if (bg) {
           setLoginBackground(bg);
@@ -133,13 +140,33 @@ const ConfigurationsPage = ({ currentUser }) => {
           setRegistrationNumber(dealerInfo.regNumber || '');
           setDealerAddress(dealerInfo.address || '');
         }
-        setAutoArrearsEnabled(autoArrears);
       } catch (e) {
         console.error('Error loading theme settings:', e);
       }
     };
     if (activeSection === 'themeSettings') {
       loadThemeSettings();
+    }
+  }, [activeSection]);
+
+  // Load billing settings from database
+  useEffect(() => {
+    const loadBillingSettings = async () => {
+      try {
+        const [autoArrears, stampFeeSettings] = await Promise.all([
+          getAutoArrearsEnabled(),
+          getStampFeeSettings()
+        ]);
+        setAutoArrearsEnabled(autoArrears);
+        setStampFeeMode(stampFeeSettings.mode);
+        setStampFeeNetPayThreshold(stampFeeSettings.netPayThreshold);
+        setStampFeeSupplyKgThreshold(stampFeeSettings.supplyKgThreshold);
+      } catch (e) {
+        console.error('Error loading billing settings:', e);
+      }
+    };
+    if (activeSection === 'billingSettings') {
+      loadBillingSettings();
     }
   }, [activeSection]);
 
@@ -301,14 +328,24 @@ const ConfigurationsPage = ({ currentUser }) => {
       // Save dealer info
       promises.push(saveDealerInfo(dealerName, registrationNumber, dealerAddress));
 
-      // Save invoice settings
-      promises.push(saveAutoArrearsEnabled(autoArrearsEnabled));
-
       await Promise.all(promises);
       showToast('Settings saved successfully', 'success');
     } catch (error) {
       console.error('Error saving settings:', error);
       showToast('Error saving settings', 'error');
+    }
+  };
+
+  const saveBillingSettings = async () => {
+    try {
+      await Promise.all([
+        saveAutoArrearsEnabled(autoArrearsEnabled),
+        saveStampFeeSettings(stampFeeMode, stampFeeNetPayThreshold, stampFeeSupplyKgThreshold)
+      ]);
+      showToast('Billing settings saved successfully', 'success');
+    } catch (error) {
+      console.error('Error saving billing settings:', error);
+      showToast('Error saving billing settings', 'error');
     }
   };
 
@@ -579,6 +616,17 @@ const ConfigurationsPage = ({ currentUser }) => {
             >
               <Users className="w-4 h-4" />
               User Management
+            </button>
+            <button
+              onClick={() => setActiveSection('billingSettings')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === 'billingSettings'
+                  ? 'border-green-600 text-green-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Receipt className="w-4 h-4" />
+              Billing
             </button>
           </div>
         </div>
@@ -1102,29 +1150,6 @@ const ConfigurationsPage = ({ currentUser }) => {
               </div>
             </div>
 
-            {/* Invoice Settings Section */}
-            <div className="border border-gray-200 rounded-lg p-4 mt-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Invoice Settings</h3>
-              <div className="flex items-start gap-4">
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoArrearsEnabled}
-                    onChange={(e) => setAutoArrearsEnabled(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                </label>
-                <div>
-                  <span className="text-sm font-medium text-gray-700">Auto Arrears Carry-Forward</span>
-                  <p className="text-sm text-gray-500 mt-1">
-                    When enabled, if a customer has a negative net pay (balance due) in an invoice,
-                    that amount will automatically be added as arrears in the next month's invoice.
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Save Button */}
             <div className="mt-6 pt-4 border-t border-gray-200">
               <button
@@ -1254,6 +1279,161 @@ const ConfigurationsPage = ({ currentUser }) => {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Billing Settings Section */}
+        {activeSection === 'billingSettings' && (
+          <div className="p-4">
+            <p className="text-gray-600 mb-6">Configure billing and invoice calculation settings.</p>
+
+            {/* Auto Arrears Carry-Forward */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Arrears Settings</h3>
+              <div className="flex items-start gap-4">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoArrearsEnabled}
+                    onChange={(e) => setAutoArrearsEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </label>
+                <div>
+                  <span className="text-sm font-medium text-gray-700">Auto Arrears Carry-Forward</span>
+                  <p className="text-sm text-gray-500 mt-1">
+                    When enabled, if a customer has a negative net pay (balance due) in an invoice,
+                    that amount will automatically be added as arrears in the next month's invoice.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Stamp Fee Settings */}
+            <div className="border border-gray-200 rounded-lg p-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Stamp Fee Settings</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Configure when stamp fee should be applied to invoices.
+              </p>
+
+              <div className="space-y-3">
+                {/* Option 1: Include for all */}
+                <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="stampFeeMode"
+                    value={STAMP_FEE_MODES.INCLUDE_ALL}
+                    checked={stampFeeMode === STAMP_FEE_MODES.INCLUDE_ALL}
+                    onChange={(e) => setStampFeeMode(e.target.value)}
+                    className="mt-1 text-green-600 focus:ring-green-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Include stamp fee for all</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Stamp fee will be applied to all invoices regardless of supply amount or net pay.
+                    </p>
+                  </div>
+                </label>
+
+                {/* Option 2: Exclude if no supply */}
+                <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="stampFeeMode"
+                    value={STAMP_FEE_MODES.EXCLUDE_NO_SUPPLY}
+                    checked={stampFeeMode === STAMP_FEE_MODES.EXCLUDE_NO_SUPPLY}
+                    onChange={(e) => setStampFeeMode(e.target.value)}
+                    className="mt-1 text-green-600 focus:ring-green-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Exclude stamp fee if no supply</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Stamp fee will not be applied if the customer has no tea supply for the month (0 kg).
+                    </p>
+                  </div>
+                </label>
+
+                {/* Option 3: Exclude if net pay above threshold */}
+                <div className={`p-3 border rounded-lg transition-colors ${stampFeeMode === STAMP_FEE_MODES.EXCLUDE_NET_PAY_ABOVE ? 'border-green-300 bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="stampFeeMode"
+                      value={STAMP_FEE_MODES.EXCLUDE_NET_PAY_ABOVE}
+                      checked={stampFeeMode === STAMP_FEE_MODES.EXCLUDE_NET_PAY_ABOVE}
+                      onChange={(e) => setStampFeeMode(e.target.value)}
+                      className="mt-1 text-green-600 focus:ring-green-500"
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-gray-700">Exclude stamp fee if net pay above</span>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Stamp fee will not be applied if the customer's net pay exceeds the specified amount.
+                      </p>
+                    </div>
+                  </label>
+                  {stampFeeMode === STAMP_FEE_MODES.EXCLUDE_NET_PAY_ABOVE && (
+                    <div className="mt-3 ml-7">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Net Pay Threshold (Rs.)</label>
+                      <input
+                        type="number"
+                        value={stampFeeNetPayThreshold}
+                        onChange={(e) => setStampFeeNetPayThreshold(parseFloat(e.target.value) || 0)}
+                        placeholder="e.g., 10000"
+                        className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-green-500 outline-none text-sm"
+                        min="0"
+                        step="100"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Option 4: Exclude if supply more than threshold */}
+                <div className={`p-3 border rounded-lg transition-colors ${stampFeeMode === STAMP_FEE_MODES.EXCLUDE_SUPPLY_MORE_THAN ? 'border-green-300 bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="stampFeeMode"
+                      value={STAMP_FEE_MODES.EXCLUDE_SUPPLY_MORE_THAN}
+                      checked={stampFeeMode === STAMP_FEE_MODES.EXCLUDE_SUPPLY_MORE_THAN}
+                      onChange={(e) => setStampFeeMode(e.target.value)}
+                      className="mt-1 text-green-600 focus:ring-green-500"
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-gray-700">Exclude stamp fee if supply more than</span>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Stamp fee will not be applied if the customer's total supply exceeds the specified kg amount.
+                      </p>
+                    </div>
+                  </label>
+                  {stampFeeMode === STAMP_FEE_MODES.EXCLUDE_SUPPLY_MORE_THAN && (
+                    <div className="mt-3 ml-7">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Supply Threshold (kg)</label>
+                      <input
+                        type="number"
+                        value={stampFeeSupplyKgThreshold}
+                        onChange={(e) => setStampFeeSupplyKgThreshold(parseFloat(e.target.value) || 0)}
+                        placeholder="e.g., 100"
+                        className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-green-500 outline-none text-sm"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={saveBillingSettings}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+              >
+                <Save className="w-4 h-4" />
+                Save Billing Settings
+              </button>
             </div>
           </div>
         )}

@@ -48,6 +48,17 @@ export const SETTING_KEYS = {
   REGISTRATION_NUMBER: 'registration_number',
   DEALER_ADDRESS: 'dealer_address',
   AUTO_ARREARS_CARRY_FORWARD: 'auto_arrears_carry_forward',
+  STAMP_FEE_MODE: 'stamp_fee_mode',
+  STAMP_FEE_NET_PAY_THRESHOLD: 'stamp_fee_net_pay_threshold',
+  STAMP_FEE_SUPPLY_KG_THRESHOLD: 'stamp_fee_supply_kg_threshold',
+};
+
+// Stamp fee mode options
+export const STAMP_FEE_MODES = {
+  INCLUDE_ALL: 'include_all',
+  EXCLUDE_NO_SUPPLY: 'exclude_no_supply',
+  EXCLUDE_NET_PAY_ABOVE: 'exclude_net_pay_above',
+  EXCLUDE_SUPPLY_MORE_THAN: 'exclude_supply_more_than',
 };
 
 export const getLoginBackground = async () => {
@@ -88,4 +99,26 @@ export const getAutoArrearsEnabled = async () => {
 
 export const saveAutoArrearsEnabled = async (enabled) => {
   return await saveSetting(SETTING_KEYS.AUTO_ARREARS_CARRY_FORWARD, enabled ? 'true' : 'false');
+};
+
+// Stamp fee settings helpers
+export const getStampFeeSettings = async () => {
+  const [mode, netPayThreshold, supplyKgThreshold] = await Promise.all([
+    getSettingValue(SETTING_KEYS.STAMP_FEE_MODE),
+    getSettingValue(SETTING_KEYS.STAMP_FEE_NET_PAY_THRESHOLD),
+    getSettingValue(SETTING_KEYS.STAMP_FEE_SUPPLY_KG_THRESHOLD),
+  ]);
+  return {
+    mode: mode || STAMP_FEE_MODES.INCLUDE_ALL,
+    netPayThreshold: netPayThreshold ? parseFloat(netPayThreshold) : 0,
+    supplyKgThreshold: supplyKgThreshold ? parseFloat(supplyKgThreshold) : 0,
+  };
+};
+
+export const saveStampFeeSettings = async (mode, netPayThreshold, supplyKgThreshold) => {
+  await Promise.all([
+    saveSetting(SETTING_KEYS.STAMP_FEE_MODE, mode || STAMP_FEE_MODES.INCLUDE_ALL),
+    saveSetting(SETTING_KEYS.STAMP_FEE_NET_PAY_THRESHOLD, (netPayThreshold || 0).toString()),
+    saveSetting(SETTING_KEYS.STAMP_FEE_SUPPLY_KG_THRESHOLD, (supplyKgThreshold || 0).toString()),
+  ]);
 };
