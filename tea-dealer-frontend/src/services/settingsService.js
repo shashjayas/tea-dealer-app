@@ -51,6 +51,13 @@ export const SETTING_KEYS = {
   STAMP_FEE_MODE: 'stamp_fee_mode',
   STAMP_FEE_NET_PAY_THRESHOLD: 'stamp_fee_net_pay_threshold',
   STAMP_FEE_SUPPLY_KG_THRESHOLD: 'stamp_fee_supply_kg_threshold',
+  INVOICE_INCLUDE_GRAPHICS: 'invoice_include_graphics',
+  INVOICE_PAGE_SIZE: 'invoice_page_size',
+  INVOICE_TEMPLATE_IMAGE: 'invoice_template_image',
+  INVOICE_TEMPLATE_FIELDS: 'invoice_template_fields',
+  INVOICE_TEMPLATE_SIZE: 'invoice_template_size',
+  INVOICE_TEMPLATE_FONT_SIZE: 'invoice_template_font_size',
+  INVOICE_TEMPLATE_FONT_FAMILY: 'invoice_template_font_family',
 };
 
 // Stamp fee mode options
@@ -120,5 +127,72 @@ export const saveStampFeeSettings = async (mode, netPayThreshold, supplyKgThresh
     saveSetting(SETTING_KEYS.STAMP_FEE_MODE, mode || STAMP_FEE_MODES.INCLUDE_ALL),
     saveSetting(SETTING_KEYS.STAMP_FEE_NET_PAY_THRESHOLD, (netPayThreshold || 0).toString()),
     saveSetting(SETTING_KEYS.STAMP_FEE_SUPPLY_KG_THRESHOLD, (supplyKgThreshold || 0).toString()),
+  ]);
+};
+
+// Invoice PDF settings
+export const PAGE_SIZE_OPTIONS = {
+  A5: 'A5',
+  A4: 'A4',
+  A6: 'A6',
+  LETTER: 'LETTER',
+};
+
+export const getInvoicePdfSettings = async () => {
+  const [includeGraphics, pageSize] = await Promise.all([
+    getSettingValue(SETTING_KEYS.INVOICE_INCLUDE_GRAPHICS),
+    getSettingValue(SETTING_KEYS.INVOICE_PAGE_SIZE),
+  ]);
+  return {
+    includeGraphics: includeGraphics === 'true',
+    pageSize: pageSize || PAGE_SIZE_OPTIONS.A5,
+  };
+};
+
+export const saveInvoicePdfSettings = async (includeGraphics, pageSize) => {
+  await Promise.all([
+    saveSetting(SETTING_KEYS.INVOICE_INCLUDE_GRAPHICS, includeGraphics ? 'true' : 'false'),
+    saveSetting(SETTING_KEYS.INVOICE_PAGE_SIZE, pageSize || PAGE_SIZE_OPTIONS.A5),
+  ]);
+};
+
+// Invoice template configuration helpers
+export const getInvoiceTemplateConfig = async () => {
+  const [templateImage, fieldsJson, sizeJson, fontSize, fontFamily] = await Promise.all([
+    getSettingValue(SETTING_KEYS.INVOICE_TEMPLATE_IMAGE),
+    getSettingValue(SETTING_KEYS.INVOICE_TEMPLATE_FIELDS),
+    getSettingValue(SETTING_KEYS.INVOICE_TEMPLATE_SIZE),
+    getSettingValue(SETTING_KEYS.INVOICE_TEMPLATE_FONT_SIZE),
+    getSettingValue(SETTING_KEYS.INVOICE_TEMPLATE_FONT_FAMILY),
+  ]);
+
+  return {
+    templateImage: templateImage || null,
+    fields: fieldsJson ? JSON.parse(fieldsJson) : [],
+    templateSize: sizeJson ? JSON.parse(sizeJson) : { width: 800, height: 1000 },
+    globalFontSize: fontSize ? parseInt(fontSize) : 12,
+    globalFontFamily: fontFamily || "'Courier New', Courier, monospace",
+  };
+};
+
+export const saveInvoiceTemplateConfig = async (config) => {
+  await Promise.all([
+    config.templateImage
+      ? saveSetting(SETTING_KEYS.INVOICE_TEMPLATE_IMAGE, config.templateImage)
+      : deleteSetting(SETTING_KEYS.INVOICE_TEMPLATE_IMAGE),
+    saveSetting(SETTING_KEYS.INVOICE_TEMPLATE_FIELDS, JSON.stringify(config.fields || [])),
+    saveSetting(SETTING_KEYS.INVOICE_TEMPLATE_SIZE, JSON.stringify(config.templateSize || { width: 800, height: 1000 })),
+    saveSetting(SETTING_KEYS.INVOICE_TEMPLATE_FONT_SIZE, (config.globalFontSize || 12).toString()),
+    saveSetting(SETTING_KEYS.INVOICE_TEMPLATE_FONT_FAMILY, config.globalFontFamily || "'Courier New', Courier, monospace"),
+  ]);
+};
+
+export const clearInvoiceTemplate = async () => {
+  await Promise.all([
+    deleteSetting(SETTING_KEYS.INVOICE_TEMPLATE_IMAGE),
+    deleteSetting(SETTING_KEYS.INVOICE_TEMPLATE_FIELDS),
+    deleteSetting(SETTING_KEYS.INVOICE_TEMPLATE_SIZE),
+    deleteSetting(SETTING_KEYS.INVOICE_TEMPLATE_FONT_SIZE),
+    deleteSetting(SETTING_KEYS.INVOICE_TEMPLATE_FONT_FAMILY),
   ]);
 };

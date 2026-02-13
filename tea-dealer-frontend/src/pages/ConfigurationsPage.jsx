@@ -19,7 +19,13 @@ import {
   saveAutoArrearsEnabled,
   getStampFeeSettings,
   saveStampFeeSettings,
-  STAMP_FEE_MODES
+  STAMP_FEE_MODES,
+  getInvoicePdfSettings,
+  saveInvoicePdfSettings,
+  PAGE_SIZE_OPTIONS,
+  getInvoiceTemplateConfig,
+  saveInvoiceTemplateConfig,
+  clearInvoiceTemplate
 } from '../services/settingsService';
 import {
   getUsers,
@@ -117,6 +123,10 @@ const ConfigurationsPage = ({ currentUser }) => {
   const [editingUser, setEditingUser] = useState(null);
   const [userForm, setUserForm] = useState({ username: '', password: '', email: '', role: 'DEALER' });
 
+  // Invoice PDF Settings State
+  const [invoiceIncludeGraphics, setInvoiceIncludeGraphics] = useState(true);
+  const [invoicePageSize, setInvoicePageSize] = useState(PAGE_SIZE_OPTIONS.A5);
+
   // Load fertilizer types
   useEffect(() => {
     if (activeSection === 'fertilizerTypes') {
@@ -174,6 +184,22 @@ const ConfigurationsPage = ({ currentUser }) => {
   useEffect(() => {
     if (activeSection === 'userManagement') {
       loadUsers();
+    }
+  }, [activeSection]);
+
+  // Load invoice PDF settings
+  useEffect(() => {
+    const loadInvoiceSettings = async () => {
+      try {
+        const settings = await getInvoicePdfSettings();
+        setInvoiceIncludeGraphics(settings.includeGraphics);
+        setInvoicePageSize(settings.pageSize);
+      } catch (e) {
+        console.error('Error loading invoice settings:', e);
+      }
+    };
+    if (activeSection === 'invoiceTemplate') {
+      loadInvoiceSettings();
     }
   }, [activeSection]);
 
@@ -349,6 +375,16 @@ const ConfigurationsPage = ({ currentUser }) => {
     }
   };
 
+  const saveInvoiceSettings = async () => {
+    try {
+      await saveInvoicePdfSettings(invoiceIncludeGraphics, invoicePageSize);
+      showToast('Invoice settings saved successfully', 'success');
+    } catch (error) {
+      console.error('Error saving invoice settings:', error);
+      showToast('Error saving invoice settings', 'error');
+    }
+  };
+
   const clearLoginBackground = async () => {
     try {
       await clearLoginBgFromDb();
@@ -362,21 +398,35 @@ const ConfigurationsPage = ({ currentUser }) => {
     }
   };
 
-  // Load saved configuration
+  // Load saved configuration from database
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    const loadTemplateConfig = async () => {
       try {
-        const config = JSON.parse(saved);
+        const config = await getInvoiceTemplateConfig();
         setTemplateImage(config.templateImage || null);
         setTemplateSize(config.templateSize || { width: 800, height: 1000 });
         setPlacedFields(config.fields || []);
         setGlobalFontSize(config.globalFontSize || 12);
         setGlobalFontFamily(config.globalFontFamily || "'Courier New', Courier, monospace");
       } catch (e) {
-        console.error('Error loading config:', e);
+        console.error('Error loading template config from database:', e);
+        // Fallback to localStorage for backwards compatibility
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try {
+            const config = JSON.parse(saved);
+            setTemplateImage(config.templateImage || null);
+            setTemplateSize(config.templateSize || { width: 800, height: 1000 });
+            setPlacedFields(config.fields || []);
+            setGlobalFontSize(config.globalFontSize || 12);
+            setGlobalFontFamily(config.globalFontFamily || "'Courier New', Courier, monospace");
+          } catch (err) {
+            console.error('Error loading config from localStorage:', err);
+          }
+        }
       }
-    }
+    };
+    loadTemplateConfig();
   }, []);
 
   // Keyboard navigation for selected field
@@ -529,7 +579,7 @@ const ConfigurationsPage = ({ currentUser }) => {
     if (selectedField === fieldId) setSelectedField(null);
   };
 
-  const saveConfiguration = () => {
+  const saveConfiguration = async () => {
     const config = {
       templateImage,
       templateSize,
@@ -537,8 +587,15 @@ const ConfigurationsPage = ({ currentUser }) => {
       globalFontSize,
       globalFontFamily
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    showToast('Template configuration saved successfully', 'success');
+    try {
+      await saveInvoiceTemplateConfig(config);
+      // Also keep localStorage as backup/cache
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      showToast('Template configuration saved to database', 'success');
+    } catch (error) {
+      console.error('Error saving template config:', error);
+      showToast('Error saving template configuration', 'error');
+    }
   };
 
   const applyGlobalFontSize = () => {
@@ -546,12 +603,18 @@ const ConfigurationsPage = ({ currentUser }) => {
     showToast('Font size applied to all fields', 'success');
   };
 
-  const clearTemplate = () => {
-    setTemplateImage(null);
-    setPlacedFields([]);
-    setSelectedField(null);
-    localStorage.removeItem(STORAGE_KEY);
-    showToast('Template cleared', 'success');
+  const clearTemplate = async () => {
+    try {
+      await clearInvoiceTemplate();
+      setTemplateImage(null);
+      setPlacedFields([]);
+      setSelectedField(null);
+      localStorage.removeItem(STORAGE_KEY);
+      showToast('Template cleared', 'success');
+    } catch (error) {
+      console.error('Error clearing template:', error);
+      showToast('Error clearing template', 'error');
+    }
   };
 
   const selectedFieldData = placedFields.find(f => f.id === selectedField);
@@ -929,10 +992,64 @@ const ConfigurationsPage = ({ currentUser }) => {
               )}
             </div>
 
+            {/* PDF Generation Settings */}
+            <div className="mt-4 border border-gray-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-gray-800 mb-3">PDF Generation Settings</h3>
+
+              <div className="flex flex-wrap items-center gap-6">
+                {/* Graphics Toggle */}
+                <div className="flex items-center gap-3">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={invoiceIncludeGraphics}
+                      onChange={(e) => setInvoiceIncludeGraphics(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                  </label>
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Include Template Image</span>
+                    <p className="text-xs text-gray-500">Enable for preview, disable for dot matrix printing</p>
+                  </div>
+                </div>
+
+                {/* Page Size */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">Page Size:</label>
+                  <div className="flex gap-1">
+                    {Object.entries(PAGE_SIZE_OPTIONS).map(([key, value]) => (
+                      <button
+                        key={key}
+                        onClick={() => setInvoicePageSize(value)}
+                        className={`px-3 py-1 text-sm rounded border transition-colors ${
+                          invoicePageSize === value
+                            ? 'border-green-500 bg-green-50 text-green-700'
+                            : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                        }`}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Save Settings Button */}
+                <button
+                  onClick={saveInvoiceSettings}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium ml-auto"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Save PDF Settings
+                </button>
+              </div>
+            </div>
+
             {/* Help Text */}
             <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
               <strong>How to use:</strong> Upload your pre-printed invoice form image, then drag fields from the left panel onto the template.
               Position them where values should print. Click a field to adjust its properties. Save when done.
+              <br /><strong>Tip:</strong> Disable "Include Template Image" when printing on pre-printed dot matrix forms to get text-only output at the same positions.
               <br /><strong>Keyboard shortcuts:</strong> Arrow keys to move selected field (Shift+Arrow for larger steps), Delete to remove.
             </div>
           </div>
@@ -1257,7 +1374,7 @@ const ConfigurationsPage = ({ currentUser }) => {
                       <td className="px-4 py-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                           user.role === 'SUPER_ADMIN'
-                            ? 'bg-yellow-100 text-yellow-700'
+                            ? 'bg-green-100 text-green-700'
                             : 'bg-blue-100 text-blue-700'
                         }`}>
                           {user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Tea Dealer'}
@@ -1437,6 +1554,7 @@ const ConfigurationsPage = ({ currentUser }) => {
             </div>
           </div>
         )}
+
       </div>
 
       {/* Confirm Dialog */}
