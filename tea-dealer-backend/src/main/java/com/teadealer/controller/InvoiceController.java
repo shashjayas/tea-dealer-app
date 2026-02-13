@@ -1,8 +1,12 @@
 package com.teadealer.controller;
 
 import com.teadealer.model.Invoice;
+import com.teadealer.service.InvoicePdfService;
 import com.teadealer.service.InvoiceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +20,9 @@ public class InvoiceController {
 
     @Autowired
     private InvoiceService invoiceService;
+
+    @Autowired
+    private InvoicePdfService invoicePdfService;
 
     @GetMapping("/{id}")
     public ResponseEntity<Invoice> getInvoiceById(@PathVariable Long id) {
@@ -117,6 +124,53 @@ public class InvoiceController {
             Invoice.InvoiceStatus status = Invoice.InvoiceStatus.valueOf(statusStr);
             Invoice invoice = invoiceService.updateInvoiceStatus(id, status);
             return ResponseEntity.ok(invoice);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<?> downloadInvoicePdf(@PathVariable Long id) {
+        try {
+            Invoice invoice = invoiceService.getInvoiceById(id)
+                    .orElseThrow(() -> new RuntimeException("Invoice not found"));
+
+            byte[] pdfBytes = invoicePdfService.generateInvoicePdf(invoice);
+
+            String filename = String.format("invoice_%s_%d_%02d.pdf",
+                    invoice.getBookNumber(), invoice.getYear(), invoice.getMonth());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/customer/{customerId}/period/{year}/{month}/pdf")
+    public ResponseEntity<?> downloadInvoicePdfByCustomerAndPeriod(
+            @PathVariable Long customerId,
+            @PathVariable Integer year,
+            @PathVariable Integer month) {
+        try {
+            Invoice invoice = invoiceService.getInvoiceByCustomerAndPeriod(customerId, year, month)
+                    .orElseThrow(() -> new RuntimeException("Invoice not found for this period"));
+
+            byte[] pdfBytes = invoicePdfService.generateInvoicePdf(invoice);
+
+            String filename = String.format("invoice_%s_%d_%02d.pdf",
+                    invoice.getBookNumber(), year, month);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

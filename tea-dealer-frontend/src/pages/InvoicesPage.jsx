@@ -9,7 +9,8 @@ import {
   getInvoiceByCustomerAndPeriod,
   generateAllInvoices,
   regenerateInvoice,
-  deleteInvoice
+  deleteInvoice,
+  downloadInvoicePdf
 } from '../services/invoiceService';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
@@ -327,16 +328,56 @@ const InvoicesPage = () => {
     setActiveTab('single');
   };
 
-  const handleDownloadInvoice = (customer) => {
-    showToast(`Download invoice for ${customer.growerNameEnglish} - PDF feature coming soon`, 'info');
+  const handleDownloadInvoice = async (summary) => {
+    if (!summary.invoice?.id) {
+      showToast('Invoice not generated yet', 'error');
+      return;
+    }
+    try {
+      const filename = `invoice_${summary.customer.bookNumber}_${selectedYear}_${String(selectedMonth).padStart(2, '0')}.pdf`;
+      await downloadInvoicePdf(summary.invoice.id, filename);
+      showToast(`Invoice downloaded for ${summary.customer.growerNameEnglish}`, 'success');
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      showToast('Error downloading invoice PDF', 'error');
+    }
   };
 
-  const handleBulkDownload = () => {
+  const handleBulkDownload = async () => {
     if (selectedInvoices.size === 0) {
       showToast('Please select at least one invoice', 'error');
       return;
     }
-    showToast(`Downloading ${selectedInvoices.size} invoices - PDF feature coming soon`, 'info');
+
+    const selectedSummaries = invoiceSummaries.filter(
+      s => selectedInvoices.has(s.customer.id) && s.invoice?.id
+    );
+
+    if (selectedSummaries.length === 0) {
+      showToast('No generated invoices selected', 'error');
+      return;
+    }
+
+    showToast(`Downloading ${selectedSummaries.length} invoices...`, 'info');
+
+    let successCount = 0;
+    for (const summary of selectedSummaries) {
+      try {
+        const filename = `invoice_${summary.customer.bookNumber}_${selectedYear}_${String(selectedMonth).padStart(2, '0')}.pdf`;
+        await downloadInvoicePdf(summary.invoice.id, filename);
+        successCount++;
+        // Add small delay between downloads
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (error) {
+        console.error(`Error downloading invoice for ${summary.customer.bookNumber}:`, error);
+      }
+    }
+
+    if (successCount === selectedSummaries.length) {
+      showToast(`Successfully downloaded ${successCount} invoices`, 'success');
+    } else {
+      showToast(`Downloaded ${successCount} of ${selectedSummaries.length} invoices`, 'warning');
+    }
   };
 
   // Single view setup
@@ -789,9 +830,9 @@ const InvoicesPage = () => {
                                     <Printer className="w-4 h-4" />
                                   </button>
                                   <button
-                                    onClick={() => handleDownloadInvoice(summary.customer)}
+                                    onClick={() => handleDownloadInvoice(summary)}
                                     className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
-                                    title="Download Invoice"
+                                    title="Download Invoice PDF"
                                   >
                                     <Download className="w-4 h-4" />
                                   </button>
@@ -942,13 +983,22 @@ const InvoicesPage = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     {currentInvoice && (
-                      <button
-                        onClick={() => setPrintInvoice(currentInvoice)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm font-medium"
-                      >
-                        <Printer className="w-4 h-4" />
-                        Print
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setPrintInvoice(currentInvoice)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm font-medium"
+                        >
+                          <Printer className="w-4 h-4" />
+                          Print
+                        </button>
+                        <button
+                          onClick={() => handleDownloadInvoice({ invoice: currentInvoice, customer: selectedCustomer })}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download PDF
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={handleRegenerateSingleInvoice}

@@ -56,3 +56,54 @@ export const deleteInvoice = async (id) => {
     method: 'DELETE',
   });
 };
+
+// PDF Download
+export const downloadInvoicePdf = async (invoiceId, filename) => {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/pdf`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to download invoice PDF');
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'invoice.pdf';
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
+export const downloadInvoicePdfByPeriod = async (customerId, year, month, filename) => {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_BASE_URL}/invoices/customer/${customerId}/period/${year}/${month}/pdf`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to download invoice PDF');
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'invoice.pdf';
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
