@@ -338,7 +338,46 @@ const DeductionsPage = () => {
             </div>
           </div>
 
-          {/* Customer Navigation and Search */}
+          {/* Customer Search */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+            <input
+              type="text"
+              placeholder="Search customer..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setShowDropdown(true);
+              }}
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 outline-none"
+            />
+            {showDropdown && searchTerm && filteredCustomers.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto z-20">
+                {filteredCustomers.map(customer => (
+                  <div
+                    key={customer.id}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedCustomer(customer);
+                      setSearchTerm('');
+                      setShowDropdown(false);
+                    }}
+                    className="px-3 py-2 hover:bg-green-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="font-medium text-gray-800">{customer.bookNumber} - {customer.growerNameEnglish}</div>
+                    {customer.growerNameSinhala && (
+                      <div className="text-xs text-gray-500">{customer.growerNameSinhala}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Customer Navigation - Arrow | Dropdown | Arrow */}
           <div className="flex items-center gap-2 flex-1">
             <button
               onClick={handlePreviousCustomer}
@@ -347,43 +386,6 @@ const DeductionsPage = () => {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-              <input
-                type="text"
-                placeholder="Search customer..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setShowDropdown(true);
-                }}
-                onFocus={() => setShowDropdown(true)}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 outline-none"
-              />
-              {showDropdown && searchTerm && filteredCustomers.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto z-20">
-                  {filteredCustomers.map(customer => (
-                    <div
-                      key={customer.id}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setSelectedCustomer(customer);
-                        setSearchTerm('');
-                        setShowDropdown(false);
-                      }}
-                      className="px-3 py-2 hover:bg-green-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
-                    >
-                      <div className="font-medium text-gray-800">{customer.bookNumber} - {customer.growerNameEnglish}</div>
-                      {customer.growerNameSinhala && (
-                        <div className="text-xs text-gray-500">{customer.growerNameSinhala}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
             <div className="relative flex-1">
               <div
@@ -499,7 +501,7 @@ const DeductionsPage = () => {
                   step="0.01"
                   value={deductions.lastMonthArrears}
                   onChange={(e) => setDeductions({...deductions, lastMonthArrears: e.target.value})}
-                  className="w-full px-2 py-1 border border-rose-300 rounded focus:ring-1 focus:ring-rose-500 outline-none text-sm bg-rose-50"
+                  className="w-full px-2 py-1.5 border border-rose-300 rounded focus:ring-1 focus:ring-rose-500 outline-none text-sm bg-rose-50"
                   placeholder="0.00"
                 />
                 {autoArrearsInfo?.autoArrearsEnabled && !autoArrearsInfo?.autoArrearsAmount && (
@@ -523,7 +525,7 @@ const DeductionsPage = () => {
                       value={newAdvanceAmount}
                       onChange={(e) => setNewAdvanceAmount(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && addAdvanceEntry()}
-                      className="w-full px-2 py-1 pr-7 border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-blue-50"
+                      className="w-full px-2 py-1.5 pr-7 border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-blue-50"
                       placeholder="0.00"
                     />
                     <div className="absolute right-1 top-1/2 -translate-y-1/2">
@@ -573,7 +575,7 @@ const DeductionsPage = () => {
                   step="0.01"
                   value={deductions.loanAmount}
                   onChange={(e) => setDeductions({...deductions, loanAmount: e.target.value})}
-                  className="w-full px-2 py-1 border border-purple-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-purple-50"
+                  className="w-full px-2 py-1.5 border border-purple-300 rounded focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-purple-50"
                   placeholder="0.00"
                 />
               </div>
@@ -586,7 +588,7 @@ const DeductionsPage = () => {
                   step="0.01"
                   value={deductions.fertilizer1Amount}
                   onChange={(e) => setDeductions({...deductions, fertilizer1Amount: e.target.value})}
-                  className="w-full px-2 py-1 border border-green-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm bg-green-50"
+                  className="w-full px-2 py-1.5 border border-green-300 rounded focus:ring-1 focus:ring-green-500 outline-none text-sm bg-green-50"
                   placeholder="0.00"
                 />
               </div>
@@ -599,7 +601,7 @@ const DeductionsPage = () => {
                   step="0.01"
                   value={deductions.fertilizer2Amount}
                   onChange={(e) => setDeductions({...deductions, fertilizer2Amount: e.target.value})}
-                  className="w-full px-2 py-1 border border-emerald-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none text-sm bg-emerald-50"
+                  className="w-full px-2 py-1.5 border border-emerald-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none text-sm bg-emerald-50"
                   placeholder="0.00"
                 />
               </div>
@@ -612,7 +614,7 @@ const DeductionsPage = () => {
                   step="0.01"
                   value={deductions.agrochemicalsAmount}
                   onChange={(e) => setDeductions({...deductions, agrochemicalsAmount: e.target.value})}
-                  className="w-full px-2 py-1 border border-cyan-300 rounded focus:ring-1 focus:ring-cyan-500 outline-none text-sm bg-cyan-50"
+                  className="w-full px-2 py-1.5 border border-cyan-300 rounded focus:ring-1 focus:ring-cyan-500 outline-none text-sm bg-cyan-50"
                   placeholder="0.00"
                 />
               </div>
@@ -629,7 +631,7 @@ const DeductionsPage = () => {
                   type="number"
                   value={deductions.teaPacketsCount}
                   onChange={(e) => setDeductions({...deductions, teaPacketsCount: e.target.value})}
-                  className="w-full px-2 py-1 border border-amber-300 rounded focus:ring-1 focus:ring-amber-500 outline-none text-sm bg-amber-50"
+                  className="w-full px-2 py-1.5 border border-amber-300 rounded focus:ring-1 focus:ring-amber-500 outline-none text-sm bg-amber-50"
                   placeholder="Count"
                 />
               </div>
@@ -642,7 +644,7 @@ const DeductionsPage = () => {
                   step="0.01"
                   value={deductions.otherDeductions}
                   onChange={(e) => setDeductions({...deductions, otherDeductions: e.target.value})}
-                  className="w-full px-2 py-1 border border-pink-300 rounded focus:ring-1 focus:ring-pink-500 outline-none text-sm bg-pink-50"
+                  className="w-full px-2 py-1.5 border border-pink-300 rounded focus:ring-1 focus:ring-pink-500 outline-none text-sm bg-pink-50"
                   placeholder="0.00"
                 />
               </div>
@@ -656,7 +658,7 @@ const DeductionsPage = () => {
                   type="text"
                   value={`Rs. ${parseFloat(monthlyTotals?.transportDeduction || 0).toFixed(2)}`}
                   disabled
-                  className="w-full px-2 py-1 border border-gray-200 rounded bg-gray-100 text-sm text-gray-600"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded bg-gray-100 text-sm text-gray-600"
                 />
               </div>
 
@@ -667,7 +669,7 @@ const DeductionsPage = () => {
                   type="text"
                   value={`Rs. ${parseFloat(monthlyTotals?.stampFee || 0).toFixed(2)}`}
                   disabled
-                  className="w-full px-2 py-1 border border-gray-200 rounded bg-gray-100 text-sm text-gray-600"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded bg-gray-100 text-sm text-gray-600"
                 />
               </div>
 
