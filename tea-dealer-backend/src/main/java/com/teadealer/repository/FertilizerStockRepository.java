@@ -22,4 +22,7 @@ public interface FertilizerStockRepository extends JpaRepository<FertilizerStock
 
     @Query("SELECT COALESCE(SUM(fs.stockAddedKg), 0) FROM FertilizerStock fs WHERE fs.fertilizerType.id = :typeId AND (fs.year < :year OR (fs.year = :year AND fs.month <= :month))")
     BigDecimal getTotalStockUpToMonth(@Param("typeId") Long typeId, @Param("year") Integer year, @Param("month") Integer month);
+
+    @Query("SELECT COALESCE(SUM(fs.bagsAdded), 0) FROM FertilizerStock fs WHERE fs.fertilizerType.id = :typeId AND fs.bagSizeKg = :bagSizeKg AND (fs.year < :year OR (fs.year = :year AND fs.month <= :month))")
+    Integer getTotalBagsUpToMonth(@Param("typeId") Long typeId, @Param("bagSizeKg") BigDecimal bagSizeKg, @Param("year") Integer year, @Param("month") Integer month);
 }

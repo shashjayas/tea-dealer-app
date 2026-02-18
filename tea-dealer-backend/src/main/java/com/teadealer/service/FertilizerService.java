@@ -111,6 +111,16 @@ public class FertilizerService {
         return totalStock.subtract(totalSupplied);
     }
 
+    public void deleteStock(Long id) {
+        stockRepository.deleteById(id);
+    }
+
+    public Integer getAvailableBagsByTypeAndSize(Long typeId, BigDecimal bagSizeKg, Integer year, Integer month) {
+        Integer totalBags = stockRepository.getTotalBagsUpToMonth(typeId, bagSizeKg, year, month);
+        Integer suppliedBags = supplyRepository.getTotalBagsSuppliedUpToMonth(typeId, bagSizeKg, year, month);
+        return (totalBags != null ? totalBags : 0) - (suppliedBags != null ? suppliedBags : 0);
+    }
+
     // ============ Fertilizer Supply Methods ============
 
     public List<FertilizerSupply> getSuppliesByPeriod(Integer year, Integer month) {

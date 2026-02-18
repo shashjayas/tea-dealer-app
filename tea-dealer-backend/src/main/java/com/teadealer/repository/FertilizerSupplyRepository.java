@@ -26,4 +26,7 @@ public interface FertilizerSupplyRepository extends JpaRepository<FertilizerSupp
 
     @Query("SELECT COALESCE(SUM(fs.quantityKg), 0) FROM FertilizerSupply fs WHERE fs.customer.id = :customerId AND fs.fertilizerType.id = :typeId")
     BigDecimal getTotalSuppliedToCustomer(@Param("customerId") Long customerId, @Param("typeId") Long typeId);
+
+    @Query("SELECT COALESCE(SUM(fs.bagsCount), 0) FROM FertilizerSupply fs WHERE fs.fertilizerType.id = :typeId AND fs.bagSizeKg = :bagSizeKg AND (YEAR(fs.supplyDate) < :year OR (YEAR(fs.supplyDate) = :year AND MONTH(fs.supplyDate) <= :month))")
+    Integer getTotalBagsSuppliedUpToMonth(@Param("typeId") Long typeId, @Param("bagSizeKg") BigDecimal bagSizeKg, @Param("year") Integer year, @Param("month") Integer month);
 }

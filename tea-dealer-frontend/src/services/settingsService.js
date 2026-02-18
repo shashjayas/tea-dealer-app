@@ -58,6 +58,14 @@ export const SETTING_KEYS = {
   INVOICE_TEMPLATE_SIZE: 'invoice_template_size',
   INVOICE_TEMPLATE_FONT_SIZE: 'invoice_template_font_size',
   INVOICE_TEMPLATE_FONT_FAMILY: 'invoice_template_font_family',
+  // Page visibility settings
+  PAGE_STOCK_ENABLED: 'page_stock_enabled',
+  PAGE_DEDUCTIONS_ENABLED: 'page_deductions_enabled',
+  PAGE_INVOICES_ENABLED: 'page_invoices_enabled',
+  PAGE_REPORTS_ENABLED: 'page_reports_enabled',
+  // Stock page tab visibility
+  STOCK_TAB_FERTILIZER_ENABLED: 'stock_tab_fertilizer_enabled',
+  STOCK_TAB_TEA_PACKETS_ENABLED: 'stock_tab_tea_packets_enabled',
 };
 
 // Stamp fee mode options
@@ -194,5 +202,36 @@ export const clearInvoiceTemplate = async () => {
     deleteSetting(SETTING_KEYS.INVOICE_TEMPLATE_SIZE),
     deleteSetting(SETTING_KEYS.INVOICE_TEMPLATE_FONT_SIZE),
     deleteSetting(SETTING_KEYS.INVOICE_TEMPLATE_FONT_FAMILY),
+  ]);
+};
+
+// Page visibility settings helpers
+export const getPageVisibilitySettings = async () => {
+  const [stockEnabled, deductionsEnabled, invoicesEnabled, reportsEnabled, fertilizerTabEnabled, teaPacketsTabEnabled] = await Promise.all([
+    getSettingValue(SETTING_KEYS.PAGE_STOCK_ENABLED),
+    getSettingValue(SETTING_KEYS.PAGE_DEDUCTIONS_ENABLED),
+    getSettingValue(SETTING_KEYS.PAGE_INVOICES_ENABLED),
+    getSettingValue(SETTING_KEYS.PAGE_REPORTS_ENABLED),
+    getSettingValue(SETTING_KEYS.STOCK_TAB_FERTILIZER_ENABLED),
+    getSettingValue(SETTING_KEYS.STOCK_TAB_TEA_PACKETS_ENABLED),
+  ]);
+  return {
+    stockEnabled: stockEnabled !== 'false', // Default to true
+    deductionsEnabled: deductionsEnabled !== 'false', // Default to true
+    invoicesEnabled: invoicesEnabled !== 'false', // Default to true
+    reportsEnabled: reportsEnabled !== 'false', // Default to true
+    fertilizerTabEnabled: fertilizerTabEnabled !== 'false', // Default to true
+    teaPacketsTabEnabled: teaPacketsTabEnabled !== 'false', // Default to true
+  };
+};
+
+export const savePageVisibilitySettings = async (settings) => {
+  await Promise.all([
+    saveSetting(SETTING_KEYS.PAGE_STOCK_ENABLED, settings.stockEnabled ? 'true' : 'false'),
+    saveSetting(SETTING_KEYS.PAGE_DEDUCTIONS_ENABLED, settings.deductionsEnabled ? 'true' : 'false'),
+    saveSetting(SETTING_KEYS.PAGE_INVOICES_ENABLED, settings.invoicesEnabled ? 'true' : 'false'),
+    saveSetting(SETTING_KEYS.PAGE_REPORTS_ENABLED, settings.reportsEnabled ? 'true' : 'false'),
+    saveSetting(SETTING_KEYS.STOCK_TAB_FERTILIZER_ENABLED, settings.fertilizerTabEnabled ? 'true' : 'false'),
+    saveSetting(SETTING_KEYS.STOCK_TAB_TEA_PACKETS_ENABLED, settings.teaPacketsTabEnabled ? 'true' : 'false'),
   ]);
 };

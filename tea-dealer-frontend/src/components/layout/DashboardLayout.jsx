@@ -1,10 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { getPageVisibilitySettings } from '../../services/settingsService';
 
 const DashboardLayout = ({ user, onLogout, children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [pageVisibility, setPageVisibility] = useState({
+    stockEnabled: true,
+    deductionsEnabled: true,
+    invoicesEnabled: true,
+    reportsEnabled: true,
+  });
+
+  useEffect(() => {
+    const loadPageVisibility = async () => {
+      try {
+        const settings = await getPageVisibilitySettings();
+        setPageVisibility(settings);
+      } catch (e) {
+        console.error('Error loading page visibility settings:', e);
+      }
+    };
+    loadPageVisibility();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -14,6 +33,7 @@ const DashboardLayout = ({ user, onLogout, children }) => {
         user={user}
         onLogout={onLogout}
         isOpen={sidebarOpen}
+        pageVisibility={pageVisibility}
       />
 
       <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : ''}`}>

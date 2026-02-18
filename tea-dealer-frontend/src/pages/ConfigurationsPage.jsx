@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical, Leaf, Plus, Edit2, X, Palette, Image as ImageIcon, Users, Receipt } from 'lucide-react';
+import { FileText, Upload, Trash2, Save, Eye, EyeOff, GripVertical, Leaf, Plus, Edit2, X, Palette, Image as ImageIcon, Users, Receipt, Settings, Warehouse, Coffee } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -9,6 +9,12 @@ import {
   updateFertilizerType,
   deleteFertilizerType
 } from '../services/fertilizerService';
+import {
+  getTeaPacketTypes,
+  createTeaPacketType,
+  updateTeaPacketType,
+  deleteTeaPacketType
+} from '../services/teaPacketService';
 import {
   getLoginBackground,
   saveLoginBackground as saveLoginBgToDb,
@@ -25,7 +31,9 @@ import {
   PAGE_SIZE_OPTIONS,
   getInvoiceTemplateConfig,
   saveInvoiceTemplateConfig,
-  clearInvoiceTemplate
+  clearInvoiceTemplate,
+  getPageVisibilitySettings,
+  savePageVisibilitySettings
 } from '../services/settingsService';
 import {
   getUsers,
@@ -97,12 +105,21 @@ const ConfigurationsPage = ({ currentUser }) => {
   const fileInputRef = useRef(null);
   const containerRef = useRef(null);
 
+  // Stocks Sub-tab State
+  const [stockSubTab, setStockSubTab] = useState('fertilizer'); // 'fertilizer' or 'teaPackets'
+
   // Fertilizer Types State
   const [fertilizerTypes, setFertilizerTypes] = useState([]);
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [editingType, setEditingType] = useState(null);
   const [typeForm, setTypeForm] = useState({ name: '', bagSizes: '', unit: 'kg', active: true });
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+
+  // Tea Packet Types State
+  const [teaPacketTypes, setTeaPacketTypes] = useState([]);
+  const [showTeaTypeForm, setShowTeaTypeForm] = useState(false);
+  const [editingTeaType, setEditingTeaType] = useState(null);
+  const [teaTypeForm, setTeaTypeForm] = useState({ name: '', packetWeights: '', unit: 'g', active: true });
 
   // Theme Settings State
   const [loginBackground, setLoginBackground] = useState(null);
@@ -127,10 +144,21 @@ const ConfigurationsPage = ({ currentUser }) => {
   const [invoiceIncludeGraphics, setInvoiceIncludeGraphics] = useState(true);
   const [invoicePageSize, setInvoicePageSize] = useState(PAGE_SIZE_OPTIONS.A5);
 
-  // Load fertilizer types
+  // App Settings State (Page Visibility)
+  const [pageVisibility, setPageVisibility] = useState({
+    stockEnabled: true,
+    deductionsEnabled: true,
+    invoicesEnabled: true,
+    reportsEnabled: true,
+    fertilizerTabEnabled: true,
+    teaPacketsTabEnabled: true,
+  });
+
+  // Load stocks types (fertilizer and tea packets)
   useEffect(() => {
-    if (activeSection === 'fertilizerTypes') {
+    if (activeSection === 'stocks') {
       loadFertilizerTypes();
+      loadTeaPacketTypes();
     }
   }, [activeSection]);
 
@@ -200,6 +228,21 @@ const ConfigurationsPage = ({ currentUser }) => {
     };
     if (activeSection === 'invoiceTemplate') {
       loadInvoiceSettings();
+    }
+  }, [activeSection]);
+
+  // Load page visibility settings
+  useEffect(() => {
+    const loadPageVisibility = async () => {
+      try {
+        const settings = await getPageVisibilitySettings();
+        setPageVisibility(settings);
+      } catch (e) {
+        console.error('Error loading page visibility settings:', e);
+      }
+    };
+    if (activeSection === 'appSettings') {
+      loadPageVisibility();
     }
   }, [activeSection]);
 
@@ -325,6 +368,68 @@ const ConfigurationsPage = ({ currentUser }) => {
     });
   };
 
+  // Tea Packet Types Handlers
+  const loadTeaPacketTypes = async () => {
+    try {
+      const types = await getTeaPacketTypes();
+      setTeaPacketTypes(types || []);
+    } catch (error) {
+      console.error('Error loading tea packet types:', error);
+      showToast('Error loading tea packet types', 'error');
+    }
+  };
+
+  const handleSaveTeaType = async () => {
+    if (!teaTypeForm.name || !teaTypeForm.packetWeights) {
+      showToast('Please fill in name and packet weights', 'warning');
+      return;
+    }
+
+    try {
+      if (editingTeaType) {
+        await updateTeaPacketType(editingTeaType.id, teaTypeForm);
+        showToast('Tea packet type updated', 'success');
+      } else {
+        await createTeaPacketType(teaTypeForm);
+        showToast('Tea packet type created', 'success');
+      }
+      setShowTeaTypeForm(false);
+      setEditingTeaType(null);
+      setTeaTypeForm({ name: '', packetWeights: '', unit: 'g', active: true });
+      loadTeaPacketTypes();
+    } catch (error) {
+      showToast('Error saving tea packet type', 'error');
+    }
+  };
+
+  const handleEditTeaType = (type) => {
+    setEditingTeaType(type);
+    setTeaTypeForm({
+      name: type.name,
+      packetWeights: type.packetWeights,
+      unit: type.unit || 'g',
+      active: type.active
+    });
+    setShowTeaTypeForm(true);
+  };
+
+  const handleDeleteTeaType = (type) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Tea Packet Type',
+      message: `Are you sure you want to delete "${type.name}"?`,
+      onConfirm: async () => {
+        try {
+          await deleteTeaPacketType(type.id);
+          showToast('Tea packet type deleted', 'success');
+          loadTeaPacketTypes();
+        } catch (error) {
+          showToast('Error deleting tea packet type', 'error');
+        }
+      }
+    });
+  };
+
   // Theme Settings Handlers
   const handleLoginBgUpload = (e) => {
     const file = e.target.files[0];
@@ -382,6 +487,16 @@ const ConfigurationsPage = ({ currentUser }) => {
     } catch (error) {
       console.error('Error saving invoice settings:', error);
       showToast('Error saving invoice settings', 'error');
+    }
+  };
+
+  const saveAppSettings = async () => {
+    try {
+      await savePageVisibilitySettings(pageVisibility);
+      showToast('App settings saved successfully', 'success');
+    } catch (error) {
+      console.error('Error saving app settings:', error);
+      showToast('Error saving app settings', 'error');
     }
   };
 
@@ -648,15 +763,15 @@ const ConfigurationsPage = ({ currentUser }) => {
               Invoice Template
             </button>
             <button
-              onClick={() => setActiveSection('fertilizerTypes')}
+              onClick={() => setActiveSection('stocks')}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeSection === 'fertilizerTypes'
+                activeSection === 'stocks'
                   ? 'border-green-600 text-green-700'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Leaf className="w-4 h-4" />
-              Fertilizer Types
+              <Warehouse className="w-4 h-4" />
+              Stocks
             </button>
             <button
               onClick={() => setActiveSection('themeSettings')}
@@ -690,6 +805,17 @@ const ConfigurationsPage = ({ currentUser }) => {
             >
               <Receipt className="w-4 h-4" />
               Billing
+            </button>
+            <button
+              onClick={() => setActiveSection('appSettings')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === 'appSettings'
+                  ? 'border-green-600 text-green-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              App Settings
             </button>
           </div>
         </div>
@@ -1055,111 +1181,250 @@ const ConfigurationsPage = ({ currentUser }) => {
           </div>
         )}
 
-        {/* Fertilizer Types Section */}
-        {activeSection === 'fertilizerTypes' && (
+        {/* Stocks Section (Fertilizer & Tea Packets) */}
+        {activeSection === 'stocks' && (
           <div className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-gray-600">Configure fertilizer types and their available bag sizes.</p>
+            {/* Sub-tabs for Fertilizer and Tea Packets */}
+            <div className="flex items-center gap-1 mb-4 border-b border-gray-200">
               <button
-                onClick={() => { setShowTypeForm(true); setEditingType(null); setTypeForm({ name: '', bagSizes: '', unit: 'kg', active: true }); }}
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                onClick={() => setStockSubTab('fertilizer')}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                  stockSubTab === 'fertilizer'
+                    ? 'border-green-600 text-green-700'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
               >
-                <Plus className="w-4 h-4" /> Add Fertilizer Type
+                <Leaf className="w-4 h-4" />
+                Fertilizer Types
+              </button>
+              <button
+                onClick={() => setStockSubTab('teaPackets')}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                  stockSubTab === 'teaPackets'
+                    ? 'border-amber-600 text-amber-700'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Coffee className="w-4 h-4" />
+                Tea Packet Types
               </button>
             </div>
 
-            {/* Type Form Modal */}
-            {showTypeForm && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-96">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">{editingType ? 'Edit' : 'Add'} Fertilizer Type</h3>
-                    <button onClick={() => setShowTypeForm(false)} className="text-gray-500 hover:text-gray-700">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                      <input
-                        type="text"
-                        value={typeForm.name}
-                        onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
-                        placeholder="e.g., Urea, TSP, MOP"
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Bag Sizes (comma separated)</label>
-                      <input
-                        type="text"
-                        value={typeForm.bagSizes}
-                        onChange={(e) => setTypeForm({ ...typeForm, bagSizes: e.target.value })}
-                        placeholder="e.g., 25, 50"
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Enter bag sizes in kg, separated by commas</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="typeActive"
-                        checked={typeForm.active}
-                        onChange={(e) => setTypeForm({ ...typeForm, active: e.target.checked })}
-                        className="rounded border-gray-300 text-green-600"
-                      />
-                      <label htmlFor="typeActive" className="text-sm text-gray-700">Active</label>
-                    </div>
-                    <button onClick={handleSaveType} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                      <Save className="w-4 h-4" /> Save
-                    </button>
-                  </div>
+            {/* Fertilizer Types Sub-section */}
+            {stockSubTab === 'fertilizer' && (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-gray-600">Configure fertilizer types and their available bag sizes.</p>
+                  <button
+                    onClick={() => { setShowTypeForm(true); setEditingType(null); setTypeForm({ name: '', bagSizes: '', unit: 'kg', active: true }); }}
+                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                  >
+                    <Plus className="w-4 h-4" /> Add Fertilizer Type
+                  </button>
                 </div>
-              </div>
+
+                {/* Fertilizer Type Form Modal */}
+                {showTypeForm && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-96">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold">{editingType ? 'Edit' : 'Add'} Fertilizer Type</h3>
+                        <button onClick={() => setShowTypeForm(false)} className="text-gray-500 hover:text-gray-700">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={typeForm.name}
+                            onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
+                            placeholder="e.g., Urea, TSP, MOP"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Bag Sizes (comma separated)</label>
+                          <input
+                            type="text"
+                            value={typeForm.bagSizes}
+                            onChange={(e) => setTypeForm({ ...typeForm, bagSizes: e.target.value })}
+                            placeholder="e.g., 25, 50"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 outline-none"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Enter bag sizes in kg, separated by commas</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="typeActive"
+                            checked={typeForm.active}
+                            onChange={(e) => setTypeForm({ ...typeForm, active: e.target.checked })}
+                            className="rounded border-gray-300 text-green-600"
+                          />
+                          <label htmlFor="typeActive" className="text-sm text-gray-700">Active</label>
+                        </div>
+                        <button onClick={handleSaveType} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                          <Save className="w-4 h-4" /> Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fertilizer Types Table */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Name</th>
+                        <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Bag Sizes</th>
+                        <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Status</th>
+                        <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fertilizerTypes.length > 0 ? fertilizerTypes.map(type => (
+                        <tr key={type.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium">{type.name}</td>
+                          <td className="px-4 py-3">
+                            {type.bagSizes.split(',').map(s => (
+                              <span key={s} className="inline-block bg-gray-100 px-2 py-0.5 rounded mr-1 text-sm">{s.trim()}kg</span>
+                            ))}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${type.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                              {type.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button onClick={() => handleEditType(type)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-1">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeleteType(type)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No fertilizer types defined. Add one to get started.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
 
-            {/* Types Table */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Name</th>
-                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Bag Sizes</th>
-                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Status</th>
-                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fertilizerTypes.length > 0 ? fertilizerTypes.map(type => (
-                    <tr key={type.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{type.name}</td>
-                      <td className="px-4 py-3">
-                        {type.bagSizes.split(',').map(s => (
-                          <span key={s} className="inline-block bg-gray-100 px-2 py-0.5 rounded mr-1 text-sm">{s.trim()}kg</span>
-                        ))}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${type.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {type.active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button onClick={() => handleEditType(type)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-1">
-                          <Edit2 className="w-4 h-4" />
+            {/* Tea Packet Types Sub-section */}
+            {stockSubTab === 'teaPackets' && (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-gray-600">Configure tea packet types and their available weights.</p>
+                  <button
+                    onClick={() => { setShowTeaTypeForm(true); setEditingTeaType(null); setTeaTypeForm({ name: '', packetWeights: '', unit: 'g', active: true }); }}
+                    className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700"
+                  >
+                    <Plus className="w-4 h-4" /> Add Tea Packet Type
+                  </button>
+                </div>
+
+                {/* Tea Packet Type Form Modal */}
+                {showTeaTypeForm && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-96">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold">{editingTeaType ? 'Edit' : 'Add'} Tea Packet Type</h3>
+                        <button onClick={() => setShowTeaTypeForm(false)} className="text-gray-500 hover:text-gray-700">
+                          <X className="w-5 h-5" />
                         </button>
-                        <button onClick={() => handleDeleteType(type)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
-                          <Trash2 className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={teaTypeForm.name}
+                            onChange={(e) => setTeaTypeForm({ ...teaTypeForm, name: e.target.value })}
+                            placeholder="e.g., Ceylon Tea, Green Tea"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-amber-500 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Packet Weights (comma separated)</label>
+                          <input
+                            type="text"
+                            value={teaTypeForm.packetWeights}
+                            onChange={(e) => setTeaTypeForm({ ...teaTypeForm, packetWeights: e.target.value })}
+                            placeholder="e.g., 100, 200, 500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-amber-500 outline-none"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Enter packet weights in grams, separated by commas</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="teaTypeActive"
+                            checked={teaTypeForm.active}
+                            onChange={(e) => setTeaTypeForm({ ...teaTypeForm, active: e.target.checked })}
+                            className="rounded border-gray-300 text-amber-600"
+                          />
+                          <label htmlFor="teaTypeActive" className="text-sm text-gray-700">Active</label>
+                        </div>
+                        <button onClick={handleSaveTeaType} className="w-full flex items-center justify-center gap-2 bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
+                          <Save className="w-4 h-4" /> Save
                         </button>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No fertilizer types defined. Add one to get started.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tea Packet Types Table */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Name</th>
+                        <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b">Packet Weights</th>
+                        <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Status</th>
+                        <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teaPacketTypes.length > 0 ? teaPacketTypes.map(type => (
+                        <tr key={type.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium">{type.name}</td>
+                          <td className="px-4 py-3">
+                            {type.packetWeights.split(',').map(w => (
+                              <span key={w} className="inline-block bg-amber-100 px-2 py-0.5 rounded mr-1 text-sm">{w.trim()}g</span>
+                            ))}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${type.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                              {type.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button onClick={() => handleEditTeaType(type)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-1">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeleteTeaType(type)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No tea packet types defined. Add one to get started.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -1550,6 +1815,153 @@ const ConfigurationsPage = ({ currentUser }) => {
               >
                 <Save className="w-4 h-4" />
                 Save Billing Settings
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* App Settings Section */}
+        {activeSection === 'appSettings' && (
+          <div className="p-4">
+            <p className="text-gray-600 mb-6">Configure which pages are visible in the sidebar menu.</p>
+
+            {/* Page Visibility Settings */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Page Visibility</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Enable or disable pages from appearing in the navigation menu. Disabled pages will be hidden from all users.
+              </p>
+
+              <div className="space-y-4">
+                {/* Stock Page Toggle */}
+                <div className="border border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between p-3 hover:bg-gray-50">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Stock Management</span>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Manage fertilizer and tea packet stock, supplies to customers
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={pageVisibility.stockEnabled}
+                        onChange={(e) => setPageVisibility({ ...pageVisibility, stockEnabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                  </div>
+
+                  {/* Stock Tab Sub-options */}
+                  {pageVisibility.stockEnabled && (
+                    <div className="border-t border-gray-200 bg-gray-50 p-3 space-y-3">
+                      <p className="text-xs text-gray-500 font-medium">Stock Page Tabs:</p>
+
+                      {/* Fertilizer Tab Toggle */}
+                      <div className="flex items-center justify-between pl-4">
+                        <div>
+                          <span className="text-sm text-gray-700">Fertilizer</span>
+                          <p className="text-xs text-gray-500">Manage fertilizer stock and supplies</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={pageVisibility.fertilizerTabEnabled}
+                            onChange={(e) => setPageVisibility({ ...pageVisibility, fertilizerTabEnabled: e.target.checked })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                      </div>
+
+                      {/* Tea Packets Tab Toggle */}
+                      <div className="flex items-center justify-between pl-4">
+                        <div>
+                          <span className="text-sm text-gray-700">Tea Packets</span>
+                          <p className="text-xs text-gray-500">Manage tea packet stock and supplies</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={pageVisibility.teaPacketsTabEnabled}
+                            onChange={(e) => setPageVisibility({ ...pageVisibility, teaPacketsTabEnabled: e.target.checked })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Deductions Page Toggle */}
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Deductions</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Manage customer deductions like advance, loan, transport, etc.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pageVisibility.deductionsEnabled}
+                      onChange={(e) => setPageVisibility({ ...pageVisibility, deductionsEnabled: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                  </label>
+                </div>
+
+                {/* Invoices Page Toggle */}
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Invoices</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Generate and manage customer invoices
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pageVisibility.invoicesEnabled}
+                      onChange={(e) => setPageVisibility({ ...pageVisibility, invoicesEnabled: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                  </label>
+                </div>
+
+                {/* Reports Page Toggle */}
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Reports</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      View various reports and analytics
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pageVisibility.reportsEnabled}
+                      onChange={(e) => setPageVisibility({ ...pageVisibility, reportsEnabled: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={saveAppSettings}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+              >
+                <Save className="w-4 h-4" />
+                Save App Settings
               </button>
             </div>
           </div>
