@@ -45,6 +45,16 @@ export const addStock = async (stockData) => {
   });
 };
 
+export const deleteStock = async (id) => {
+  return await apiCall(`/fertilizer/stock/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+export const getAvailableBagsByTypeAndSize = async (typeId, bagSizeKg, year, month) => {
+  return await apiCall(`/fertilizer/stock/available/${typeId}/${bagSizeKg}/${year}/${month}`);
+};
+
 // Fertilizer Supply
 export const getSuppliesByPeriod = async (year, month) => {
   return await apiCall(`/fertilizer/supply/${year}/${month}`);

@@ -2,11 +2,21 @@ import React from 'react';
 import { Leaf } from 'lucide-react';
 import { menuItems } from '../../constants/menuItems';
 
-const Sidebar = ({ currentPage, onPageChange, user, onLogout, isOpen }) => {
-  // Filter menu items based on user role
+const Sidebar = ({ currentPage, onPageChange, user, onLogout, isOpen, pageVisibility }) => {
+  // Filter menu items based on user role and page visibility settings
   const filteredMenuItems = menuItems.filter(item => {
-    if (!item.requiredRole) return true; // No role required, show to all
-    return user?.role === item.requiredRole;
+    // Check role requirement first
+    if (item.requiredRole && user?.role !== item.requiredRole) {
+      return false;
+    }
+
+    // Check page visibility settings
+    if (item.page === 'stock' && !pageVisibility?.stockEnabled) return false;
+    if (item.page === 'deductions' && !pageVisibility?.deductionsEnabled) return false;
+    if (item.page === 'invoices' && !pageVisibility?.invoicesEnabled) return false;
+    if (item.page === 'reports' && !pageVisibility?.reportsEnabled) return false;
+
+    return true;
   });
 
   return (

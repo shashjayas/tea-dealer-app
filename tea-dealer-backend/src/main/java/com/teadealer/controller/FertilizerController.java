@@ -97,6 +97,26 @@ public class FertilizerController {
         }
     }
 
+    @DeleteMapping("/stock/{id}")
+    public ResponseEntity<Void> deleteStock(@PathVariable Long id) {
+        fertilizerService.deleteStock(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/stock/available/{typeId}/{bagSizeKg}/{year}/{month}")
+    public ResponseEntity<Map<String, Object>> getAvailableBagsByTypeAndSize(
+            @PathVariable Long typeId, @PathVariable BigDecimal bagSizeKg,
+            @PathVariable Integer year, @PathVariable Integer month) {
+        Integer available = fertilizerService.getAvailableBagsByTypeAndSize(typeId, bagSizeKg, year, month);
+        Map<String, Object> result = new HashMap<>();
+        result.put("typeId", typeId);
+        result.put("bagSizeKg", bagSizeKg);
+        result.put("year", year);
+        result.put("month", month);
+        result.put("availableBags", available);
+        return ResponseEntity.ok(result);
+    }
+
     // ============ Supply Endpoints ============
 
     @GetMapping("/supply/{year}/{month}")
