@@ -2,6 +2,19 @@ import React from 'react';
 import { XCircle } from 'lucide-react';
 
 const QuickAddModal = ({ customers, formData, onChange, onSubmit, onClose }) => {
+  // Prevent decimal point entry
+  const handleKeyDown = (e) => {
+    if (e.key === '.' || e.key === ',') {
+      e.preventDefault();
+    }
+  };
+
+  // Handle weight change - strip decimals if any get through (e.g., via paste)
+  const handleWeightChange = (value) => {
+    const intValue = value === '' ? '' : Math.floor(Math.abs(parseFloat(value) || 0)).toString();
+    onChange({ ...formData, weightKg: intValue });
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
@@ -51,11 +64,13 @@ const QuickAddModal = ({ customers, formData, onChange, onSubmit, onClose }) => 
             <label className="block text-sm font-medium text-gray-700 mb-2">Weight (kg) *</label>
             <input
               type="number"
-              step="0.01"
+              step="1"
+              min="0"
               value={formData.weightKg}
-              onChange={(e) => onChange({ ...formData, weightKg: e.target.value })}
+              onChange={(e) => handleWeightChange(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="0.00"
+              placeholder="0"
             />
           </div>
           <div>

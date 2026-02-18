@@ -448,13 +448,13 @@ const DeductionsPage = () => {
                 <div className="text-xs text-blue-600 mb-0.5">This Month Total</div>
                 <div className="text-base font-bold text-blue-800">Rs. {parseFloat(monthlyTotals.totalAmount || 0).toFixed(2)}</div>
                 <div className="text-xs text-blue-500">
-                  Collected: {parseFloat(monthlyTotals.totalKg || 0).toFixed(1)}kg
+                  Collected: {Math.round(parseFloat(monthlyTotals.totalKg || 0))}kg
                   {monthlyTotals.supplyDeductionKg > 0 && (
                     <span className="text-orange-500 ml-1">
-                      (-{parseFloat(monthlyTotals.supplyDeductionKg).toFixed(1)}kg)
+                      (-{Math.round(parseFloat(monthlyTotals.supplyDeductionKg))}kg)
                     </span>
                   )}
-                  {' = '}Payable: {parseFloat(monthlyTotals.payableKg || 0).toFixed(1)}kg
+                  {' = '}Payable: {Math.round(parseFloat(monthlyTotals.payableKg || 0))}kg
                 </div>
               </div>
 

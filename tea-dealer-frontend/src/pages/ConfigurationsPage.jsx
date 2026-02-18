@@ -33,7 +33,10 @@ import {
   saveInvoiceTemplateConfig,
   clearInvoiceTemplate,
   getPageVisibilitySettings,
-  savePageVisibilitySettings
+  savePageVisibilitySettings,
+  getDeductionRoundingMode,
+  saveDeductionRoundingMode,
+  DEDUCTION_ROUNDING_MODES
 } from '../services/settingsService';
 import {
   getUsers,
@@ -133,6 +136,7 @@ const ConfigurationsPage = ({ currentUser }) => {
   const [stampFeeMode, setStampFeeMode] = useState(STAMP_FEE_MODES.INCLUDE_ALL);
   const [stampFeeNetPayThreshold, setStampFeeNetPayThreshold] = useState(0);
   const [stampFeeSupplyKgThreshold, setStampFeeSupplyKgThreshold] = useState(0);
+  const [deductionRoundingMode, setDeductionRoundingMode] = useState(DEDUCTION_ROUNDING_MODES.HALF_UP);
 
   // User Management State
   const [users, setUsers] = useState([]);
@@ -191,14 +195,16 @@ const ConfigurationsPage = ({ currentUser }) => {
   useEffect(() => {
     const loadBillingSettings = async () => {
       try {
-        const [autoArrears, stampFeeSettings] = await Promise.all([
+        const [autoArrears, stampFeeSettings, roundingMode] = await Promise.all([
           getAutoArrearsEnabled(),
-          getStampFeeSettings()
+          getStampFeeSettings(),
+          getDeductionRoundingMode()
         ]);
         setAutoArrearsEnabled(autoArrears);
         setStampFeeMode(stampFeeSettings.mode);
         setStampFeeNetPayThreshold(stampFeeSettings.netPayThreshold);
         setStampFeeSupplyKgThreshold(stampFeeSettings.supplyKgThreshold);
+        setDeductionRoundingMode(roundingMode);
       } catch (e) {
         console.error('Error loading billing settings:', e);
       }
@@ -471,7 +477,8 @@ const ConfigurationsPage = ({ currentUser }) => {
     try {
       await Promise.all([
         saveAutoArrearsEnabled(autoArrearsEnabled),
-        saveStampFeeSettings(stampFeeMode, stampFeeNetPayThreshold, stampFeeSupplyKgThreshold)
+        saveStampFeeSettings(stampFeeMode, stampFeeNetPayThreshold, stampFeeSupplyKgThreshold),
+        saveDeductionRoundingMode(deductionRoundingMode)
       ]);
       showToast('Billing settings saved successfully', 'success');
     } catch (error) {
@@ -1804,6 +1811,89 @@ const ConfigurationsPage = ({ currentUser }) => {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Supply Deduction Rounding Settings */}
+            <div className="border border-gray-200 rounded-lg p-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Supply Deduction Rounding</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Configure how the supply deduction kg (percentage-based) values should be rounded.
+              </p>
+
+              <div className="space-y-3">
+                {/* Option 1: Round to half up (default) */}
+                <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="deductionRoundingMode"
+                    value={DEDUCTION_ROUNDING_MODES.HALF_UP}
+                    checked={deductionRoundingMode === DEDUCTION_ROUNDING_MODES.HALF_UP}
+                    onChange={(e) => setDeductionRoundingMode(e.target.value)}
+                    className="mt-1 text-green-600 focus:ring-green-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Round to nearest (half up)</span>
+                    <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Default</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Rounds to nearest integer. Values at .5 or above round up (e.g., 5.49 → 5, 5.50 → 6, 5.75 → 6).
+                    </p>
+                  </div>
+                </label>
+
+                {/* Option 2: Include decimals */}
+                <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="deductionRoundingMode"
+                    value={DEDUCTION_ROUNDING_MODES.INCLUDE_DECIMALS}
+                    checked={deductionRoundingMode === DEDUCTION_ROUNDING_MODES.INCLUDE_DECIMALS}
+                    onChange={(e) => setDeductionRoundingMode(e.target.value)}
+                    className="mt-1 text-green-600 focus:ring-green-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Include decimals</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Keep exact decimal values with 2 decimal places (e.g., 5.49 → 5.49, 5.75 → 5.75).
+                    </p>
+                  </div>
+                </label>
+
+                {/* Option 3: Round to next integer (ceiling) */}
+                <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="deductionRoundingMode"
+                    value={DEDUCTION_ROUNDING_MODES.CEILING}
+                    checked={deductionRoundingMode === DEDUCTION_ROUNDING_MODES.CEILING}
+                    onChange={(e) => setDeductionRoundingMode(e.target.value)}
+                    className="mt-1 text-green-600 focus:ring-green-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Round to next integer (ceiling)</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Always rounds up to the next whole number (e.g., 5.01 → 6, 5.49 → 6, 5.75 → 6).
+                    </p>
+                  </div>
+                </label>
+
+                {/* Option 4: Exclude decimals (floor) */}
+                <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="deductionRoundingMode"
+                    value={DEDUCTION_ROUNDING_MODES.FLOOR}
+                    checked={deductionRoundingMode === DEDUCTION_ROUNDING_MODES.FLOOR}
+                    onChange={(e) => setDeductionRoundingMode(e.target.value)}
+                    className="mt-1 text-green-600 focus:ring-green-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Exclude decimals (truncate)</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Always rounds down by removing decimal places (e.g., 5.49 → 5, 5.75 → 5, 5.99 → 5).
+                    </p>
+                  </div>
+                </label>
               </div>
             </div>
 

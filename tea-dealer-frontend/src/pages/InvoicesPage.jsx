@@ -20,6 +20,12 @@ import PrintableInvoice from '../components/invoices/PrintableInvoice';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// Format kg values - always show as integers (no decimals)
+const formatKgValue = (value) => {
+  const num = parseFloat(value || 0);
+  return Math.round(num).toString();
+};
+
 const InvoicesPage = () => {
   const { customers } = useCustomerContext();
   const { toasts, showToast, removeToast } = useToast();
@@ -787,9 +793,9 @@ const InvoicesPage = () => {
                           <td className="px-3 py-2 text-right text-gray-700">
                             {summary.isGenerated ? (
                               <>
-                                {summary.totalKg.toFixed(2)} kg
+                                {Math.round(summary.totalKg)} kg
                                 <span className="text-xs text-gray-400 block">
-                                  G1: {summary.grade1Kg.toFixed(1)} | G2: {summary.grade2Kg.toFixed(1)}
+                                  G1: {Math.round(summary.grade1Kg)} | G2: {Math.round(summary.grade2Kg)}
                                 </span>
                               </>
                             ) : (
@@ -866,7 +872,7 @@ const InvoicesPage = () => {
               <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
                 <span>Showing {filteredSummaries.length} of {invoiceSummaries.length} invoices</span>
                 <div className="flex items-center gap-4">
-                  <span>Total Kg: <strong>{filteredSummaries.filter(s => s.isGenerated).reduce((sum, s) => sum + s.totalKg, 0).toFixed(2)}</strong></span>
+                  <span>Total Kg: <strong>{Math.round(filteredSummaries.filter(s => s.isGenerated).reduce((sum, s) => sum + s.totalKg, 0))}</strong></span>
                   <span>Total Net: <strong className="text-green-700">Rs. {filteredSummaries.filter(s => s.isGenerated).reduce((sum, s) => sum + s.netAmount, 0).toFixed(2)}</strong></span>
                 </div>
               </div>
@@ -1043,7 +1049,7 @@ const InvoicesPage = () => {
                         </div>
                         <div className="px-2 py-1 text-center">
                           <span className="text-xs text-gray-500 mr-1">Pay:</span>
-                          <span className="font-bold text-blue-700">{parseFloat(currentInvoice.payableKg || 0).toFixed(0)}</span>
+                          <span className="font-bold text-blue-700">{formatKgValue(currentInvoice.payableKg)}</span>
                         </div>
                       </div>
                     </div>
@@ -1114,9 +1120,12 @@ const InvoicesPage = () => {
                           {(() => {
                             const g1Kg = parseFloat(currentInvoice.grade1Kg || 0);
                             const g2Kg = parseFloat(currentInvoice.grade2Kg || 0);
+                            const totalKg = g1Kg + g2Kg;
                             const dedPct = parseFloat(currentInvoice.supplyDeductionPercentage || 0);
-                            const g1Ded = (g1Kg * dedPct) / 100;
-                            const g2Ded = (g2Kg * dedPct) / 100;
+                            // Use actual rounded supplyDeductionKg from invoice and distribute proportionally
+                            const supplyDedKg = parseFloat(currentInvoice.supplyDeductionKg || 0);
+                            const g1Ded = totalKg > 0 ? supplyDedKg * (g1Kg / totalKg) : 0;
+                            const g2Ded = totalKg > 0 ? supplyDedKg * (g2Kg / totalKg) : 0;
                             const g1Pay = g1Kg - g1Ded;
                             const g2Pay = g2Kg - g2Ded;
                             return (
@@ -1125,17 +1134,17 @@ const InvoicesPage = () => {
                                   <div className="px-2 py-1">
                                     <div className="flex justify-between">
                                       <span className="text-gray-500">G1:</span>
-                                      <span className="font-medium">{g1Kg.toFixed(1)}</span>
+                                      <span className="font-medium">{formatKgValue(g1Kg)}</span>
                                     </div>
                                     {dedPct > 0 && (
                                       <>
                                         <div className="flex justify-between text-orange-600">
                                           <span>-{dedPct}%:</span>
-                                          <span>-{g1Ded.toFixed(1)}</span>
+                                          <span>-{formatKgValue(g1Ded)}</span>
                                         </div>
                                         <div className="flex justify-between text-green-700 font-semibold border-t border-gray-200 pt-0.5">
                                           <span>Pay:</span>
-                                          <span>{g1Pay.toFixed(1)}</span>
+                                          <span>{formatKgValue(g1Pay)}</span>
                                         </div>
                                       </>
                                     )}
@@ -1143,17 +1152,17 @@ const InvoicesPage = () => {
                                   <div className="px-2 py-1">
                                     <div className="flex justify-between">
                                       <span className="text-gray-500">G2:</span>
-                                      <span className="font-medium">{g2Kg.toFixed(1)}</span>
+                                      <span className="font-medium">{formatKgValue(g2Kg)}</span>
                                     </div>
                                     {dedPct > 0 && (
                                       <>
                                         <div className="flex justify-between text-orange-600">
                                           <span>-{dedPct}%:</span>
-                                          <span>-{g2Ded.toFixed(1)}</span>
+                                          <span>-{formatKgValue(g2Ded)}</span>
                                         </div>
                                         <div className="flex justify-between text-green-700 font-semibold border-t border-gray-200 pt-0.5">
                                           <span>Pay:</span>
-                                          <span>{g2Pay.toFixed(1)}</span>
+                                          <span>{formatKgValue(g2Pay)}</span>
                                         </div>
                                       </>
                                     )}
@@ -1172,9 +1181,11 @@ const InvoicesPage = () => {
                           {(() => {
                             const g1Kg = parseFloat(currentInvoice.grade1Kg || 0);
                             const g2Kg = parseFloat(currentInvoice.grade2Kg || 0);
-                            const dedPct = parseFloat(currentInvoice.supplyDeductionPercentage || 0);
-                            const g1Ded = (g1Kg * dedPct) / 100;
-                            const g2Ded = (g2Kg * dedPct) / 100;
+                            const totalKg = g1Kg + g2Kg;
+                            // Use actual rounded supplyDeductionKg from invoice and distribute proportionally
+                            const supplyDedKg = parseFloat(currentInvoice.supplyDeductionKg || 0);
+                            const g1Ded = totalKg > 0 ? supplyDedKg * (g1Kg / totalKg) : 0;
+                            const g2Ded = totalKg > 0 ? supplyDedKg * (g2Kg / totalKg) : 0;
                             const g1PayKg = g1Kg - g1Ded;
                             const g2PayKg = g2Kg - g2Ded;
                             const g1Rate = parseFloat(currentInvoice.grade1Rate || 0);
@@ -1186,23 +1197,23 @@ const InvoicesPage = () => {
                                 <tbody>
                                   <tr className="border-b border-gray-200">
                                     <td className="px-3 py-1 text-gray-600">Grade 1</td>
-                                    <td className="px-3 py-1 text-right text-gray-500">{g1Kg.toFixed(2)} kg</td>
-                                    <td className="px-3 py-1 text-right text-orange-600">-{g1Ded.toFixed(2)}</td>
-                                    <td className="px-3 py-1 text-right font-medium text-green-700">{g1PayKg.toFixed(2)} kg</td>
+                                    <td className="px-3 py-1 text-right text-gray-500">{formatKgValue(g1Kg)} kg</td>
+                                    <td className="px-3 py-1 text-right text-orange-600">-{formatKgValue(g1Ded)}</td>
+                                    <td className="px-3 py-1 text-right font-medium text-green-700">{formatKgValue(g1PayKg)} kg</td>
                                     <td className="px-3 py-1 text-right font-semibold">{g1Amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                                   </tr>
                                   <tr className="border-b border-gray-200">
                                     <td className="px-3 py-1 text-gray-600">Grade 2</td>
-                                    <td className="px-3 py-1 text-right text-gray-500">{g2Kg.toFixed(2)} kg</td>
-                                    <td className="px-3 py-1 text-right text-orange-600">-{g2Ded.toFixed(2)}</td>
-                                    <td className="px-3 py-1 text-right font-medium text-green-700">{g2PayKg.toFixed(2)} kg</td>
+                                    <td className="px-3 py-1 text-right text-gray-500">{formatKgValue(g2Kg)} kg</td>
+                                    <td className="px-3 py-1 text-right text-orange-600">-{formatKgValue(g2Ded)}</td>
+                                    <td className="px-3 py-1 text-right font-medium text-green-700">{formatKgValue(g2PayKg)} kg</td>
                                     <td className="px-3 py-1 text-right font-semibold">{g2Amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                                   </tr>
                                   <tr className="bg-blue-50">
                                     <td className="px-3 py-1.5 font-bold text-blue-800">Gross</td>
-                                    <td className="px-3 py-1.5 text-right text-gray-500">{(g1Kg + g2Kg).toFixed(2)}</td>
-                                    <td className="px-3 py-1.5 text-right text-orange-600">-{(g1Ded + g2Ded).toFixed(2)}</td>
-                                    <td className="px-3 py-1.5 text-right font-bold text-blue-800">{parseFloat(currentInvoice.payableKg || 0).toFixed(2)} kg</td>
+                                    <td className="px-3 py-1.5 text-right text-gray-500">{formatKgValue(g1Kg + g2Kg)}</td>
+                                    <td className="px-3 py-1.5 text-right text-orange-600">-{formatKgValue(currentInvoice.supplyDeductionKg)}</td>
+                                    <td className="px-3 py-1.5 text-right font-bold text-blue-800">{formatKgValue(currentInvoice.payableKg)} kg</td>
                                     <td className="px-3 py-1.5 text-right font-bold text-blue-800">{parseFloat(currentInvoice.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                                   </tr>
                                 </tbody>

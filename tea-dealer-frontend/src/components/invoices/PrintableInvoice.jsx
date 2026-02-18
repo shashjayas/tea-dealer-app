@@ -68,9 +68,9 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
       grade1Kg: formatNumber(invoice.grade1Kg),
       grade2Kg: formatNumber(invoice.grade2Kg),
       totalKg: formatNumber(invoice.totalKg),
-      supplyDeductionKg: formatNumber(invoice.supplyDeductionKg),
+      supplyDeductionKg: formatKg(invoice.supplyDeductionKg),
       supplyDeductionPercent: invoice.supplyDeductionPercentage ? parseFloat(invoice.supplyDeductionPercentage).toFixed(1) : '',
-      payableKg: formatNumber(invoice.payableKg),
+      payableKg: formatKg(invoice.payableKg),
       grade1Rate: formatNumber(invoice.grade1Rate),
       grade2Rate: formatNumber(invoice.grade2Rate),
       grade1Amount: formatNumber(invoice.grade1Amount),
@@ -98,6 +98,14 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
     const num = parseFloat(value);
     if (isNaN(num)) return '';
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Format kg values - always show as integers (no decimals)
+  const formatKg = (value) => {
+    if (value === null || value === undefined || value === '') return '';
+    const num = parseFloat(value);
+    if (isNaN(num)) return '';
+    return Math.round(num).toString();
   };
 
   const getMonthName = (monthNum) => {
