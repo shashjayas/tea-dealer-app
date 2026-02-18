@@ -525,11 +525,11 @@ const StockManagementPage = () => {
         onClose={() => setConfirmDialog({ isOpen: false })}
       />
 
-      <div className="bg-white rounded-lg shadow-lg p-4">
+      <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-gray-800">Stock Management</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-800">Stock Management</h1>
             {/* Period Selector */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 bg-gray-100 rounded px-2 py-1">
@@ -559,7 +559,7 @@ const StockManagementPage = () => {
               {tabVisibility.fertilizerTabEnabled && (
                 <button
                   onClick={() => { setMainTab('fertilizer'); setActiveTab('supply'); }}
-                  className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${mainTab === 'fertilizer' ? 'bg-green-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
+                  className={`px-3 sm:px-4 py-1.5 rounded text-sm font-medium transition-colors ${mainTab === 'fertilizer' ? 'bg-green-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
                 >
                   <Leaf className="w-4 h-4 inline mr-1" /> Fertilizer
                 </button>
@@ -567,7 +567,7 @@ const StockManagementPage = () => {
               {tabVisibility.teaPacketsTabEnabled && (
                 <button
                   onClick={() => { setMainTab('teaPackets'); setActiveTab('supply'); }}
-                  className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${mainTab === 'teaPackets' ? 'bg-amber-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
+                  className={`px-3 sm:px-4 py-1.5 rounded text-sm font-medium transition-colors ${mainTab === 'teaPackets' ? 'bg-amber-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
                 >
                   <Coffee className="w-4 h-4 inline mr-1" /> Tea Packets
                 </button>
@@ -616,9 +616,9 @@ const StockManagementPage = () => {
               <div>
                 {/* Supply Form */}
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                  <div className="grid grid-cols-6 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
                     {/* Customer Search */}
-                    <div className="col-span-2 relative">
+                    <div className="sm:col-span-2 relative">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
                       <div className="relative">
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -711,23 +711,23 @@ const StockManagementPage = () => {
 
                         if (availableBags === 0) {
                           return (
-                            <div className="flex items-center gap-2 px-3 py-2 bg-red-100 border border-red-300 rounded-lg text-red-700">
-                              <AlertTriangle className="w-5 h-5" />
-                              <span className="font-medium">No stock available for {type?.name} ({supplyForm.bagSizeKg}kg bags)</span>
+                            <div className="flex items-start sm:items-center gap-2 px-3 py-2 bg-red-100 border border-red-300 rounded-lg text-red-700">
+                              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 sm:mt-0" />
+                              <span className="font-medium text-sm sm:text-base">No stock available for {type?.name} ({supplyForm.bagSizeKg}kg bags)</span>
                             </div>
                           );
                         } else if (availableBags < requestedBags) {
                           return (
-                            <div className="flex items-center gap-2 px-3 py-2 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-800">
-                              <AlertTriangle className="w-5 h-5" />
-                              <span className="font-medium">Insufficient stock! Only {availableBags} bags available (requesting {requestedBags})</span>
+                            <div className="flex items-start sm:items-center gap-2 px-3 py-2 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-800">
+                              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 sm:mt-0" />
+                              <span className="font-medium text-sm sm:text-base">Insufficient stock! Only {availableBags} bags available (requesting {requestedBags})</span>
                             </div>
                           );
                         } else {
                           return (
                             <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
-                              <Package className="w-4 h-4" />
-                              <span>Available: <span className="font-bold">{availableBags}</span> bags of {supplyForm.bagSizeKg}kg</span>
+                              <Package className="w-4 h-4 flex-shrink-0" />
+                              <span className="text-sm sm:text-base">Available: <span className="font-bold">{availableBags}</span> bags of {supplyForm.bagSizeKg}kg</span>
                             </div>
                           );
                         }
@@ -736,9 +736,9 @@ const StockManagementPage = () => {
                   )}
 
                   {/* Date and Total Display */}
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-green-200">
-                    <div className="flex items-center gap-4">
-                      <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-3 pt-3 border-t border-green-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex items-center">
                         <label className="text-sm text-gray-600 mr-2">Date:</label>
                         <input
                           type="date"
@@ -747,13 +747,13 @@ const StockManagementPage = () => {
                           className="px-2 py-1 border border-gray-300 rounded text-sm"
                         />
                       </div>
-                      <div>
+                      <div className="flex items-center">
                         <label className="text-sm text-gray-600 mr-2">Notes:</label>
                         <input
                           type="text"
                           value={supplyForm.notes}
                           onChange={(e) => setSupplyForm({ ...supplyForm, notes: e.target.value })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm w-48"
+                          className="px-2 py-1 border border-gray-300 rounded text-sm w-full sm:w-48"
                           placeholder="Optional notes..."
                         />
                       </div>
@@ -779,8 +779,8 @@ const StockManagementPage = () => {
                 </div>
 
                 {/* Supply Records Table */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <table className="w-full">
+                <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                  <table className="w-full min-w-[700px]">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-2 text-left text-gray-700 font-semibold border-b">Date</th>
@@ -827,7 +827,7 @@ const StockManagementPage = () => {
                 {/* Add Stock Form */}
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                   <h3 className="font-semibold text-green-800 mb-3">Add Fertilizer Stock for {MONTHS[selectedMonth - 1]} {selectedYear}</h3>
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Fertilizer Type</label>
                       <select
@@ -890,8 +890,8 @@ const StockManagementPage = () => {
                 </div>
 
                 {/* Stock Records Table */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
-                  <table className="w-full">
+                <div className="border border-gray-200 rounded-lg overflow-x-auto mb-4">
+                  <table className="w-full min-w-[600px]">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-2 text-left text-gray-700 font-semibold border-b">Fertilizer Type</th>
@@ -982,30 +982,30 @@ const StockManagementPage = () => {
                 </div>
 
                 {/* Overall Stock Summary */}
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
                   <h3 className="font-semibold text-gray-700 mb-3">Overall Summary</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
                       <div className="text-sm text-gray-500">Total Stock This Month</div>
-                      <div className="text-2xl font-bold text-green-700">
+                      <div className="text-xl sm:text-2xl font-bold text-green-700">
                         {stockData.reduce((sum, s) => sum + parseFloat(s.stockAddedKg || 0), 0).toFixed(0)}kg
                       </div>
                       <div className="text-xs text-gray-400">
                         {stockData.reduce((sum, s) => sum + (s.bagsAdded || 0), 0)} bags
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
                       <div className="text-sm text-gray-500">Supplied This Month</div>
-                      <div className="text-2xl font-bold text-blue-700">
+                      <div className="text-xl sm:text-2xl font-bold text-blue-700">
                         {supplies.reduce((sum, s) => sum + parseFloat(s.quantityKg || 0), 0).toFixed(0)}kg
                       </div>
                       <div className="text-xs text-gray-400">
                         {supplies.reduce((sum, s) => sum + (s.bagsCount || 0), 0)} bags
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
                       <div className="text-sm text-gray-500">Total Available (All Types)</div>
-                      <div className={`text-2xl font-bold ${Object.values(availableStock).reduce((a, b) => a + b, 0) > 0 ? 'text-green-700' : 'text-red-700'}`}>
+                      <div className={`text-xl sm:text-2xl font-bold ${Object.values(availableStock).reduce((a, b) => a + b, 0) > 0 ? 'text-green-700' : 'text-red-700'}`}>
                         {Object.values(availableStock).reduce((a, b) => a + b, 0).toFixed(0)}kg
                       </div>
                       <div className="text-xs text-gray-400">across all fertilizer types</div>
@@ -1037,13 +1037,13 @@ const StockManagementPage = () => {
             </div>
 
             {/* Tea Packet Stock Summary */}
-            <div className="flex gap-4 mb-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-                <span className="text-amber-700 font-medium">Total Stock:</span>
+            <div className="flex flex-wrap gap-2 sm:gap-4 mb-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 sm:px-4 py-2">
+                <span className="text-amber-700 font-medium text-sm sm:text-base">Total Stock:</span>
                 <span className="ml-2 font-bold text-amber-800">{teaPacketStock.totalPackets || 0} packets</span>
               </div>
-              <div className={`border rounded-lg px-4 py-2 ${(teaPacketStock.availablePackets || 0) > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                <span className={`font-medium ${(teaPacketStock.availablePackets || 0) > 0 ? 'text-green-700' : 'text-red-700'}`}>Available:</span>
+              <div className={`border rounded-lg px-3 sm:px-4 py-2 ${(teaPacketStock.availablePackets || 0) > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <span className={`font-medium text-sm sm:text-base ${(teaPacketStock.availablePackets || 0) > 0 ? 'text-green-700' : 'text-red-700'}`}>Available:</span>
                 <span className={`ml-2 font-bold ${(teaPacketStock.availablePackets || 0) > 0 ? 'text-green-800' : 'text-red-800'}`}>{teaPacketStock.availablePackets || 0} packets</span>
               </div>
             </div>
@@ -1053,9 +1053,9 @@ const StockManagementPage = () => {
               <div>
                 {/* Supply Form */}
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-                  <div className="grid grid-cols-7 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
                     {/* Customer Search */}
-                    <div className="col-span-2 relative">
+                    <div className="sm:col-span-2 relative">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
                       <div className="relative">
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1150,14 +1150,14 @@ const StockManagementPage = () => {
                   </div>
 
                   {/* Total weight display and Notes */}
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-amber-200">
-                    <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-3 pt-3 border-t border-amber-200">
+                    <div className="flex items-center">
                       <label className="text-sm text-gray-600 mr-2">Notes:</label>
                       <input
                         type="text"
                         value={teaSupplyForm.notes}
                         onChange={(e) => setTeaSupplyForm({ ...teaSupplyForm, notes: e.target.value })}
-                        className="px-2 py-1 border border-gray-300 rounded text-sm w-64"
+                        className="px-2 py-1 border border-gray-300 rounded text-sm w-full sm:w-64"
                         placeholder="Optional notes..."
                       />
                     </div>
@@ -1178,23 +1178,23 @@ const StockManagementPage = () => {
 
                         if (availablePackets === 0) {
                           return (
-                            <div className="flex items-center gap-2 px-3 py-2 bg-red-100 border border-red-300 rounded-lg text-red-700">
-                              <AlertTriangle className="w-5 h-5" />
-                              <span className="font-medium">No stock available for {type?.name} ({teaSupplyForm.packetWeightGrams}g packets)</span>
+                            <div className="flex items-start sm:items-center gap-2 px-3 py-2 bg-red-100 border border-red-300 rounded-lg text-red-700">
+                              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 sm:mt-0" />
+                              <span className="font-medium text-sm sm:text-base">No stock available for {type?.name} ({teaSupplyForm.packetWeightGrams}g packets)</span>
                             </div>
                           );
                         } else if (availablePackets < requestedPackets) {
                           return (
-                            <div className="flex items-center gap-2 px-3 py-2 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-800">
-                              <AlertTriangle className="w-5 h-5" />
-                              <span className="font-medium">Insufficient stock! Only {availablePackets} packets available (requesting {requestedPackets})</span>
+                            <div className="flex items-start sm:items-center gap-2 px-3 py-2 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-800">
+                              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 sm:mt-0" />
+                              <span className="font-medium text-sm sm:text-base">Insufficient stock! Only {availablePackets} packets available (requesting {requestedPackets})</span>
                             </div>
                           );
                         } else {
                           return (
                             <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
-                              <Package className="w-4 h-4" />
-                              <span>Available: <span className="font-bold">{availablePackets}</span> packets of {teaSupplyForm.packetWeightGrams}g</span>
+                              <Package className="w-4 h-4 flex-shrink-0" />
+                              <span className="text-sm sm:text-base">Available: <span className="font-bold">{availablePackets}</span> packets of {teaSupplyForm.packetWeightGrams}g</span>
                             </div>
                           );
                         }
@@ -1204,8 +1204,8 @@ const StockManagementPage = () => {
                 </div>
 
                 {/* Tea Packet Supply Records Table */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <table className="w-full">
+                <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                  <table className="w-full min-w-[700px]">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-2 text-left text-gray-700 font-semibold border-b">Date</th>
@@ -1258,7 +1258,7 @@ const StockManagementPage = () => {
                 {/* Add Stock Form */}
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
                   <h3 className="font-semibold text-amber-800 mb-3">Add Tea Packet Stock for {MONTHS[selectedMonth - 1]} {selectedYear}</h3>
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tea Packet Type</label>
                       <select
@@ -1321,8 +1321,8 @@ const StockManagementPage = () => {
                 </div>
 
                 {/* Stock Records Table */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
-                  <table className="w-full">
+                <div className="border border-gray-200 rounded-lg overflow-x-auto mb-4">
+                  <table className="w-full min-w-[500px]">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-2 text-left text-gray-700 font-semibold border-b">Tea Packet Type</th>
@@ -1407,22 +1407,22 @@ const StockManagementPage = () => {
                 </div>
 
                 {/* Overall Stock Summary */}
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
                   <h3 className="font-semibold text-gray-700 mb-3">Overall Summary</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
                       <div className="text-sm text-gray-500">Total Stock (All Time)</div>
-                      <div className="text-2xl font-bold text-amber-700">{teaPacketStock.totalPackets || 0}</div>
+                      <div className="text-xl sm:text-2xl font-bold text-amber-700">{teaPacketStock.totalPackets || 0}</div>
                       <div className="text-xs text-gray-400">packets</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
                       <div className="text-sm text-gray-500">Supplied (All Time)</div>
-                      <div className="text-2xl font-bold text-blue-700">{(teaPacketStock.totalPackets || 0) - (teaPacketStock.availablePackets || 0)}</div>
+                      <div className="text-xl sm:text-2xl font-bold text-blue-700">{(teaPacketStock.totalPackets || 0) - (teaPacketStock.availablePackets || 0)}</div>
                       <div className="text-xs text-gray-400">packets</div>
                     </div>
-                    <div className={`bg-white rounded-lg p-4 border ${(teaPacketStock.availablePackets || 0) > 0 ? 'border-green-200' : 'border-red-200'}`}>
+                    <div className={`bg-white rounded-lg p-3 sm:p-4 border ${(teaPacketStock.availablePackets || 0) > 0 ? 'border-green-200' : 'border-red-200'}`}>
                       <div className="text-sm text-gray-500">Available</div>
-                      <div className={`text-2xl font-bold ${(teaPacketStock.availablePackets || 0) > 0 ? 'text-green-700' : 'text-red-700'}`}>{teaPacketStock.availablePackets || 0}</div>
+                      <div className={`text-xl sm:text-2xl font-bold ${(teaPacketStock.availablePackets || 0) > 0 ? 'text-green-700' : 'text-red-700'}`}>{teaPacketStock.availablePackets || 0}</div>
                       <div className="text-xs text-gray-400">packets</div>
                     </div>
                   </div>
