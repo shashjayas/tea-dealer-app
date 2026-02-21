@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +29,13 @@ import java.util.Optional;
 public class DeductionController {
 
     private static final String AUTO_ARREARS_SETTING_KEY = "auto_arrears_carry_forward";
+    private static final String DEDUCTION_ROUNDING_MODE_KEY = "deduction_rounding_mode";
+
+    // Deduction rounding modes
+    private static final String ROUNDING_MODE_HALF_UP = "half_up";
+    private static final String ROUNDING_MODE_INCLUDE_DECIMALS = "include_decimals";
+    private static final String ROUNDING_MODE_CEILING = "ceiling";
+    private static final String ROUNDING_MODE_FLOOR = "floor";
 
     @Autowired
     private DeductionService deductionService;
@@ -164,25 +172,28 @@ public class DeductionController {
             BigDecimal supplyDeductionPercentage = monthlyRate.getSupplyDeductionPercentage() != null ?
                     monthlyRate.getSupplyDeductionPercentage() : new BigDecimal("4.00");
 
-            // Calculate supply deduction in kg
-            BigDecimal supplyDeductionKg = totalKg.multiply(supplyDeductionPercentage)
-                    .divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+            // Calculate supply deduction in kg with configurable rounding
+            BigDecimal rawSupplyDeductionKg = totalKg.multiply(supplyDeductionPercentage)
+                    .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            BigDecimal supplyDeductionKg = applyDeductionRounding(rawSupplyDeductionKg);
 
             // Calculate payable kg (after deduction)
             BigDecimal payableKg = totalKg.subtract(supplyDeductionKg);
 
             // Calculate amounts based on payable kg (proportionally reduced from each grade)
+            // Use the actual rounded deduction to calculate the reduction ratio
             BigDecimal grade1Rate = monthlyRate.getGrade1Rate() != null ? monthlyRate.getGrade1Rate() : BigDecimal.ZERO;
             BigDecimal grade2Rate = monthlyRate.getGrade2Rate() != null ? monthlyRate.getGrade2Rate() : BigDecimal.ZERO;
 
-            BigDecimal reductionMultiplier = BigDecimal.ONE.subtract(
-                    supplyDeductionPercentage.divide(BigDecimal.valueOf(100), 4, BigDecimal.ROUND_HALF_UP));
+            BigDecimal reductionMultiplier = totalKg.compareTo(BigDecimal.ZERO) > 0
+                    ? payableKg.divide(totalKg, 6, RoundingMode.HALF_UP)
+                    : BigDecimal.ONE;
 
-            BigDecimal payableGrade1Kg = grade1Total.multiply(reductionMultiplier).setScale(2, BigDecimal.ROUND_HALF_UP);
-            BigDecimal payableGrade2Kg = grade2Total.multiply(reductionMultiplier).setScale(2, BigDecimal.ROUND_HALF_UP);
+            BigDecimal payableGrade1Kg = grade1Total.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal payableGrade2Kg = grade2Total.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
 
-            BigDecimal grade1Amount = payableGrade1Kg.multiply(grade1Rate).setScale(2, BigDecimal.ROUND_HALF_UP);
-            BigDecimal grade2Amount = payableGrade2Kg.multiply(grade2Rate).setScale(2, BigDecimal.ROUND_HALF_UP);
+            BigDecimal grade1Amount = payableGrade1Kg.multiply(grade1Rate).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal grade2Amount = payableGrade2Kg.multiply(grade2Rate).setScale(2, RoundingMode.HALF_UP);
             BigDecimal totalAmount = grade1Amount.add(grade2Amount);
 
             // Calculate transport deduction (per kg based on payable kg)
@@ -191,7 +202,7 @@ public class DeductionController {
                     monthlyRate.getTransportRatePerKg() : BigDecimal.ZERO;
             Boolean isTransportExempt = customer.getTransportExempt() != null && customer.getTransportExempt();
             BigDecimal transportDeduction = isTransportExempt ? BigDecimal.ZERO :
-                    payableKg.multiply(transportRatePerKg).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    payableKg.multiply(transportRatePerKg).setScale(2, RoundingMode.HALF_UP);
 
             Map<String, Object> result = new HashMap<>();
             result.put("grade1Kg", grade1Total);
@@ -305,5 +316,27 @@ public class DeductionController {
     public ResponseEntity<Void> deleteDeduction(@PathVariable Long id) {
         deductionService.deleteDeduction(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Apply rounding to supply deduction kg based on the configured rounding mode.
+     */
+    private BigDecimal applyDeductionRounding(BigDecimal value) {
+        String roundingMode = appSettingsService.getSettingValue(DEDUCTION_ROUNDING_MODE_KEY);
+        if (roundingMode == null) {
+            roundingMode = ROUNDING_MODE_HALF_UP; // Default
+        }
+
+        switch (roundingMode) {
+            case ROUNDING_MODE_INCLUDE_DECIMALS:
+                return value.setScale(2, RoundingMode.HALF_UP);
+            case ROUNDING_MODE_CEILING:
+                return value.setScale(0, RoundingMode.CEILING);
+            case ROUNDING_MODE_FLOOR:
+                return value.setScale(0, RoundingMode.FLOOR);
+            case ROUNDING_MODE_HALF_UP:
+            default:
+                return value.setScale(0, RoundingMode.HALF_UP);
+        }
     }
 }

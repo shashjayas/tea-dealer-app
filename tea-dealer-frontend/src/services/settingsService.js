@@ -66,6 +66,16 @@ export const SETTING_KEYS = {
   // Stock page tab visibility
   STOCK_TAB_FERTILIZER_ENABLED: 'stock_tab_fertilizer_enabled',
   STOCK_TAB_TEA_PACKETS_ENABLED: 'stock_tab_tea_packets_enabled',
+  // Deduction rounding mode
+  DEDUCTION_ROUNDING_MODE: 'deduction_rounding_mode',
+};
+
+// Deduction rounding mode options
+export const DEDUCTION_ROUNDING_MODES = {
+  HALF_UP: 'half_up',                   // Round to nearest, .5 rounds up (default)
+  INCLUDE_DECIMALS: 'include_decimals', // Keep 2 decimal places as-is
+  CEILING: 'ceiling',                   // Round to next integer (always up)
+  FLOOR: 'floor',                       // Exclude decimals (truncate/always down)
 };
 
 // Stamp fee mode options
@@ -234,4 +244,14 @@ export const savePageVisibilitySettings = async (settings) => {
     saveSetting(SETTING_KEYS.STOCK_TAB_FERTILIZER_ENABLED, settings.fertilizerTabEnabled ? 'true' : 'false'),
     saveSetting(SETTING_KEYS.STOCK_TAB_TEA_PACKETS_ENABLED, settings.teaPacketsTabEnabled ? 'true' : 'false'),
   ]);
+};
+
+// Deduction rounding mode helpers
+export const getDeductionRoundingMode = async () => {
+  const value = await getSettingValue(SETTING_KEYS.DEDUCTION_ROUNDING_MODE);
+  return value || DEDUCTION_ROUNDING_MODES.HALF_UP; // Default to half_up
+};
+
+export const saveDeductionRoundingMode = async (mode) => {
+  return await saveSetting(SETTING_KEYS.DEDUCTION_ROUNDING_MODE, mode || DEDUCTION_ROUNDING_MODES.HALF_UP);
 };

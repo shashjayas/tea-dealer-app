@@ -43,12 +43,19 @@ public class InvoiceService {
     private static final String STAMP_FEE_MODE_KEY = "stamp_fee_mode";
     private static final String STAMP_FEE_NET_PAY_THRESHOLD_KEY = "stamp_fee_net_pay_threshold";
     private static final String STAMP_FEE_SUPPLY_KG_THRESHOLD_KEY = "stamp_fee_supply_kg_threshold";
+    private static final String DEDUCTION_ROUNDING_MODE_KEY = "deduction_rounding_mode";
 
     // Stamp fee modes
     private static final String STAMP_FEE_MODE_INCLUDE_ALL = "include_all";
     private static final String STAMP_FEE_MODE_EXCLUDE_NO_SUPPLY = "exclude_no_supply";
     private static final String STAMP_FEE_MODE_EXCLUDE_NET_PAY_ABOVE = "exclude_net_pay_above";
     private static final String STAMP_FEE_MODE_EXCLUDE_SUPPLY_MORE_THAN = "exclude_supply_more_than";
+
+    // Deduction rounding modes
+    private static final String ROUNDING_MODE_HALF_UP = "half_up";
+    private static final String ROUNDING_MODE_INCLUDE_DECIMALS = "include_decimals";
+    private static final String ROUNDING_MODE_CEILING = "ceiling";
+    private static final String ROUNDING_MODE_FLOOR = "floor";
 
     public Optional<Invoice> getInvoiceById(Long id) {
         return invoiceRepository.findById(id);
@@ -144,9 +151,10 @@ public class InvoiceService {
         BigDecimal supplyDeductionPercentage = monthlyRate.getSupplyDeductionPercentage() != null ?
                 monthlyRate.getSupplyDeductionPercentage() : new BigDecimal("4.00");
 
-        // Calculate supply deduction in kg
-        BigDecimal supplyDeductionKg = totalKg.multiply(supplyDeductionPercentage)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        // Calculate supply deduction in kg with configurable rounding
+        BigDecimal rawSupplyDeductionKg = totalKg.multiply(supplyDeductionPercentage)
+                .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+        BigDecimal supplyDeductionKg = applyDeductionRounding(rawSupplyDeductionKg);
 
         // Calculate payable kg (after deduction)
         BigDecimal payableKg = totalKg.subtract(supplyDeductionKg);
@@ -162,9 +170,10 @@ public class InvoiceService {
         invoice.setGrade2Rate(grade2Rate);
 
         // Calculate amounts based on payable kg (proportionally reduced from each grade)
-        // Each grade is reduced by the same percentage
-        BigDecimal reductionMultiplier = BigDecimal.ONE.subtract(
-                supplyDeductionPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+        // Use the actual rounded deduction to calculate the reduction ratio
+        BigDecimal reductionMultiplier = totalKg.compareTo(BigDecimal.ZERO) > 0
+                ? payableKg.divide(totalKg, 6, RoundingMode.HALF_UP)
+                : BigDecimal.ONE;
 
         BigDecimal payableGrade1Kg = grade1Kg.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
         BigDecimal payableGrade2Kg = grade2Kg.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
@@ -359,5 +368,36 @@ public class InvoiceService {
                 .orElseThrow(() -> new RuntimeException("Invoice not found"));
         invoice.setStatus(status);
         return invoiceRepository.save(invoice);
+    }
+
+    /**
+     * Apply rounding to supply deduction kg based on the configured rounding mode.
+     * Options:
+     * - half_up (default): Round to nearest integer, .5 rounds up
+     * - include_decimals: Keep 2 decimal places
+     * - ceiling: Always round up to next integer
+     * - floor: Always round down (truncate decimals)
+     */
+    private BigDecimal applyDeductionRounding(BigDecimal value) {
+        String roundingMode = appSettingsService.getSettingValue(DEDUCTION_ROUNDING_MODE_KEY);
+        if (roundingMode == null) {
+            roundingMode = ROUNDING_MODE_HALF_UP; // Default
+        }
+
+        switch (roundingMode) {
+            case ROUNDING_MODE_INCLUDE_DECIMALS:
+                // Keep 2 decimal places
+                return value.setScale(2, RoundingMode.HALF_UP);
+            case ROUNDING_MODE_CEILING:
+                // Round up to next integer
+                return value.setScale(0, RoundingMode.CEILING);
+            case ROUNDING_MODE_FLOOR:
+                // Round down (truncate decimals)
+                return value.setScale(0, RoundingMode.FLOOR);
+            case ROUNDING_MODE_HALF_UP:
+            default:
+                // Round to nearest integer, .5 rounds up
+                return value.setScale(0, RoundingMode.HALF_UP);
+        }
     }
 }

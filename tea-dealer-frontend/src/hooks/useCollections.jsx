@@ -114,7 +114,7 @@ export const useCollections = (initialDate = new Date().toISOString().split('T')
         total += parseFloat(col.weightKg || 0);
       });
     });
-    return total.toFixed(2);
+    return Math.round(total);
   };
 
   const getGradeTotal = (grade) => {
@@ -124,7 +124,7 @@ export const useCollections = (initialDate = new Date().toISOString().split('T')
         total += parseFloat(customerCollections[grade].weightKg || 0);
       }
     });
-    return total.toFixed(2);
+    return Math.round(total);
   };
 
   const getCollectedCount = () => {

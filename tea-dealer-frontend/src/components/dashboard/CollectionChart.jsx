@@ -212,7 +212,7 @@ const CollectionChart = () => {
                       <div className="relative w-full h-full flex items-end">
                         {/* Tooltip */}
                         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                          {item.value.toFixed(2)} kg
+                          {Math.round(item.value)} kg
                         </div>
 
                         {/* Bar */}
@@ -242,17 +242,17 @@ const CollectionChart = () => {
       <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
         <div className="text-sm text-gray-600">
           Total: <span className="font-bold text-green-600">
-            {chartData.reduce((sum, d) => sum + d.value, 0).toFixed(2)} kg
+            {Math.round(chartData.reduce((sum, d) => sum + d.value, 0))} kg
           </span>
         </div>
         <div className="text-sm text-gray-600">
           Average: <span className="font-bold text-green-600">
-            {(chartData.reduce((sum, d) => sum + d.value, 0) / (chartData.length || 1)).toFixed(2)} kg/{viewMode === 'month' ? 'day' : 'month'}
+            {Math.round(chartData.reduce((sum, d) => sum + d.value, 0) / (chartData.length || 1))} kg/{viewMode === 'month' ? 'day' : 'month'}
           </span>
         </div>
         <div className="text-sm text-gray-600">
           Peak: <span className="font-bold text-green-600">
-            {maxValue.toFixed(2)} kg
+            {Math.round(maxValue)} kg
           </span>
         </div>
       </div>

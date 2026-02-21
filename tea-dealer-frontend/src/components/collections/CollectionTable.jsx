@@ -2,6 +2,20 @@ import React from 'react';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 
 const CollectionTable = ({ customers, collections, saving, onWeightChange }) => {
+  // Prevent decimal point entry
+  const handleKeyDown = (e) => {
+    if (e.key === '.' || e.key === ',') {
+      e.preventDefault();
+    }
+  };
+
+  // Handle change - strip decimals if any get through (e.g., via paste)
+  const handleWeightChange = (customerId, value, grade) => {
+    // Remove any decimal portion
+    const intValue = value === '' ? '' : Math.floor(Math.abs(parseFloat(value) || 0)).toString();
+    onWeightChange(customerId, intValue, grade);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 py-2 grid grid-cols-7 gap-2 font-semibold text-sm">
@@ -53,11 +67,13 @@ const CollectionTable = ({ customers, collections, saving, onWeightChange }) => 
                 <div className="px-2">
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
+                    min="0"
                     value={grade1Collection?.weightKg || ''}
-                    onChange={(e) => onWeightChange(customer.id, e.target.value, 'GRADE_1')}
+                    onChange={(e) => handleWeightChange(customer.id, e.target.value, 'GRADE_1')}
+                    onKeyDown={handleKeyDown}
                     className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-center text-sm"
-                    placeholder="0.00"
+                    placeholder="0"
                   />
                   {saving[`${customer.id}_GRADE_1`] && (
                     <span className="text-xs text-blue-600">Saving...</span>
@@ -66,18 +82,20 @@ const CollectionTable = ({ customers, collections, saving, onWeightChange }) => 
                 <div className="px-2">
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
+                    min="0"
                     value={grade2Collection?.weightKg || ''}
-                    onChange={(e) => onWeightChange(customer.id, e.target.value, 'GRADE_2')}
+                    onChange={(e) => handleWeightChange(customer.id, e.target.value, 'GRADE_2')}
+                    onKeyDown={handleKeyDown}
                     className="w-full px-2 py-1 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-center text-sm bg-green-50"
-                    placeholder="0.00"
+                    placeholder="0"
                   />
                   {saving[`${customer.id}_GRADE_2`] && (
                     <span className="text-xs text-blue-600">Saving...</span>
                   )}
                 </div>
                 <div className="text-center font-semibold text-gray-900 px-2">
-                  {totalWeight > 0 ? totalWeight.toFixed(2) : '-'}
+                  {totalWeight > 0 ? Math.round(totalWeight) : '-'}
                 </div>
               </div>
             );
