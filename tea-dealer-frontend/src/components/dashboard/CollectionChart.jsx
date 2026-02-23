@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { apiCall } from '../../services/api';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 const CollectionChart = () => {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
@@ -54,12 +56,12 @@ const CollectionChart = () => {
             const collections = await apiCall(`/collections/date-range?startDate=${startDate}&endDate=${endDate}`);
             const totalWeight = collections.reduce((sum, col) => sum + parseFloat(col.weightKg || 0), 0);
             data.push({
-              label: MONTHS[month - 1],
+              labelKey: MONTH_KEYS[month - 1],
               value: totalWeight,
               month: month
             });
           } catch (error) {
-            data.push({ label: MONTHS[month - 1], value: 0, month: month });
+            data.push({ labelKey: MONTH_KEYS[month - 1], value: 0, month: month });
           }
         }
         setChartData(data);
@@ -128,7 +130,7 @@ const CollectionChart = () => {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
           <BarChart3 className="w-6 h-6 text-green-600" />
-          Collection Overview
+          {t('dashboard.collectionOverview')}
         </h2>
 
         <div className="flex items-center gap-4">
@@ -142,7 +144,7 @@ const CollectionChart = () => {
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
-              Monthly
+              {t('dashboard.monthly')}
             </button>
             <button
               onClick={() => setViewMode('year')}
@@ -152,7 +154,7 @@ const CollectionChart = () => {
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
-              Yearly
+              {t('dashboard.yearly')}
             </button>
           </div>
 
@@ -165,7 +167,7 @@ const CollectionChart = () => {
               <ChevronLeft className="w-4 h-4 text-gray-600" />
             </button>
             <span className="text-sm font-semibold text-gray-800 min-w-[100px] text-center">
-              {viewMode === 'month' ? `${MONTHS[selectedMonth - 1]} ${selectedYear}` : selectedYear}
+              {viewMode === 'month' ? `${t(`months.short.${MONTH_KEYS[selectedMonth - 1]}`)} ${selectedYear}` : selectedYear}
             </span>
             <button
               onClick={handleNext}
@@ -179,7 +181,7 @@ const CollectionChart = () => {
 
       {loading ? (
         <div className="h-48 flex items-center justify-center">
-          <div className="text-gray-500">Loading...</div>
+          <div className="text-gray-500">{t('common.loading')}</div>
         </div>
       ) : (
         <div className="flex gap-2">
@@ -187,7 +189,7 @@ const CollectionChart = () => {
           <div className="flex flex-col justify-between h-48 py-2">
             {scaleIntervals.map((value, index) => (
               <div key={index} className="text-xs text-gray-500 text-right pr-2 min-w-[50px]">
-                {value.toFixed(0)} kg
+                {value.toFixed(0)} {t('common.kg')}
               </div>
             ))}
           </div>
@@ -212,7 +214,7 @@ const CollectionChart = () => {
                       <div className="relative w-full h-full flex items-end">
                         {/* Tooltip */}
                         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                          {Math.round(item.value)} kg
+                          {Math.round(item.value)} {t('common.kg')}
                         </div>
 
                         {/* Bar */}
@@ -228,7 +230,7 @@ const CollectionChart = () => {
 
                     {/* Label */}
                     <div className="text-xs text-gray-600 mt-1 font-medium shrink-0">
-                      {item.label}
+                      {item.labelKey ? t(`months.short.${item.labelKey}`) : item.label}
                     </div>
                   </div>
                 );
@@ -241,18 +243,18 @@ const CollectionChart = () => {
       {/* Summary */}
       <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
         <div className="text-sm text-gray-600">
-          Total: <span className="font-bold text-green-600">
-            {Math.round(chartData.reduce((sum, d) => sum + d.value, 0))} kg
+          {t('common.total')}: <span className="font-bold text-green-600">
+            {Math.round(chartData.reduce((sum, d) => sum + d.value, 0))} {t('common.kg')}
           </span>
         </div>
         <div className="text-sm text-gray-600">
-          Average: <span className="font-bold text-green-600">
-            {Math.round(chartData.reduce((sum, d) => sum + d.value, 0) / (chartData.length || 1))} kg/{viewMode === 'month' ? 'day' : 'month'}
+          {t('dashboard.average')}: <span className="font-bold text-green-600">
+            {Math.round(chartData.reduce((sum, d) => sum + d.value, 0) / (chartData.length || 1))} {t('common.kg')}/{viewMode === 'month' ? t('dashboard.day') : t('dashboard.month')}
           </span>
         </div>
         <div className="text-sm text-gray-600">
-          Peak: <span className="font-bold text-green-600">
-            {Math.round(maxValue)} kg
+          {t('dashboard.peak')}: <span className="font-bold text-green-600">
+            {Math.round(maxValue)} {t('common.kg')}
           </span>
         </div>
       </div>

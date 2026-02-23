@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Search, FileText, Download, Eye, List, User, RefreshCw, Zap, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Printer } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useCustomerContext } from '../contexts/CustomerContext';
 import {
   getCollectionsByBookNumberAndDateRange,
@@ -17,8 +18,8 @@ import Toast from '../components/common/Toast';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import PrintableInvoice from '../components/invoices/PrintableInvoice';
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_KEYS_FULL = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+const MONTH_KEYS_SHORT = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 // Format kg values - always show as integers (no decimals)
 const formatKgValue = (value) => {
@@ -27,6 +28,7 @@ const formatKgValue = (value) => {
 };
 
 const InvoicesPage = () => {
+  const { t } = useTranslation();
   const { customers } = useCustomerContext();
   const { toasts, showToast, removeToast } = useToast();
 
@@ -147,7 +149,7 @@ const InvoicesPage = () => {
     setGenerating(true);
     try {
       const result = await generateAllInvoices(selectedYear, selectedMonth);
-      showToast(`Generated ${result.generated} invoices successfully`, 'success');
+      showToast(t('toast.invoicesGeneratedSuccess', { count: result.generated }), 'success');
       await loadInvoicesForPeriod();
     } catch (error) {
       console.error('Error generating invoices:', error);
@@ -162,7 +164,7 @@ const InvoicesPage = () => {
     setRegeneratingId(customerId);
     try {
       await regenerateInvoice(customerId, selectedYear, selectedMonth);
-      showToast('Invoice regenerated successfully', 'success');
+      showToast(t('toast.invoiceRegeneratedSuccess'), 'success');
       await loadInvoicesForPeriod();
     } catch (error) {
       console.error('Error regenerating invoice:', error);
@@ -181,7 +183,7 @@ const InvoicesPage = () => {
       onConfirm: async () => {
         try {
           await deleteInvoice(invoiceId);
-          showToast('Invoice deleted successfully', 'success');
+          showToast(t('toast.invoiceDeletedSuccess'), 'success');
           await loadInvoicesForPeriod();
         } catch (error) {
           console.error('Error deleting invoice:', error);
@@ -194,7 +196,7 @@ const InvoicesPage = () => {
   // Bulk delete selected invoices
   const handleBulkDelete = () => {
     if (selectedInvoices.size === 0) {
-      showToast('Please select at least one invoice', 'error');
+      showToast(t('toast.selectAtLeastOne'), 'error');
       return;
     }
     setConfirmDialog({
@@ -351,7 +353,7 @@ const InvoicesPage = () => {
 
   const handleBulkDownload = async () => {
     if (selectedInvoices.size === 0) {
-      showToast('Please select at least one invoice', 'error');
+      showToast(t('toast.selectAtLeastOne'), 'error');
       return;
     }
 
@@ -568,7 +570,7 @@ const InvoicesPage = () => {
                 <ChevronLeft className="w-3 h-3 text-gray-600" />
               </button>
               <span className="text-xs font-semibold text-gray-800 min-w-[40px] text-center">
-                {MONTHS_SHORT[selectedMonth - 1]}
+                {t(`months.short.${MONTH_KEYS_SHORT[selectedMonth - 1]}`)}
               </span>
               <button onClick={() => handleMonthChange(1)} className="p-0.5 hover:bg-gray-200 rounded">
                 <ChevronRight className="w-3 h-3 text-gray-600" />
@@ -601,7 +603,7 @@ const InvoicesPage = () => {
                 }`}
               >
                 <List className="w-4 h-4" />
-                All Invoices
+                {t('invoices.invoiceList')}
               </button>
               <button
                 onClick={() => setActiveTab('single')}
@@ -612,7 +614,7 @@ const InvoicesPage = () => {
                 }`}
               >
                 <User className="w-4 h-4" />
-                Single Invoice
+                {t('invoices.singleInvoice')}
               </button>
             </div>
           </div>
@@ -642,7 +644,7 @@ const InvoicesPage = () => {
                     onChange={(e) => setHideZeroNetPay(e.target.checked)}
                     className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                   />
-                  Hide Rs.0
+                  {t('invoices.hideZeroNetPay')}
                 </label>
                 <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                   <input
@@ -651,7 +653,7 @@ const InvoicesPage = () => {
                     onChange={(e) => setHideZeroKg(e.target.checked)}
                     className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                   />
-                  Hide 0kg
+                  {t('invoices.hideZeroKg')}
                 </label>
                 <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                   <input
@@ -660,7 +662,7 @@ const InvoicesPage = () => {
                     onChange={(e) => setHideNotGenerated(e.target.checked)}
                     className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                   />
-                  Generated Only
+                  {t('invoices.hideNotGenerated')}
                 </label>
               </div>
 
@@ -671,7 +673,7 @@ const InvoicesPage = () => {
                   className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
                 >
                   <Zap className={`w-4 h-4 ${generating ? 'animate-pulse' : ''}`} />
-                  {generating ? 'Generating...' : 'Generate All'}
+                  {generating ? t('common.loading') : t('invoices.generateAll')}
                 </button>
                 <button
                   onClick={handleBulkDownload}
@@ -782,11 +784,11 @@ const InvoicesPage = () => {
                           <td className="px-3 py-2 text-center">
                             {summary.isGenerated ? (
                               <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                Generated
+                                {t('invoices.generated')}
                               </span>
                             ) : (
                               <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
-                                Not Generated
+                                {t('invoices.notGenerated')}
                               </span>
                             )}
                           </td>
@@ -870,10 +872,10 @@ const InvoicesPage = () => {
             {/* Summary Stats */}
             {!loadingList && filteredSummaries.length > 0 && (
               <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-                <span>Showing {filteredSummaries.length} of {invoiceSummaries.length} invoices</span>
+                <span>{t('invoices.showing')} {filteredSummaries.length} {t('invoices.of')} {invoiceSummaries.length} {t('invoices.invoicesText')}</span>
                 <div className="flex items-center gap-4">
-                  <span>Total Kg: <strong>{Math.round(filteredSummaries.filter(s => s.isGenerated).reduce((sum, s) => sum + s.totalKg, 0))}</strong></span>
-                  <span>Total Net: <strong className="text-green-700">Rs. {filteredSummaries.filter(s => s.isGenerated).reduce((sum, s) => sum + s.netAmount, 0).toFixed(2)}</strong></span>
+                  <span>{t('invoices.totalKg')}: <strong>{Math.round(filteredSummaries.filter(s => s.isGenerated).reduce((sum, s) => sum + s.totalKg, 0))}</strong></span>
+                  <span>{t('invoices.totalNet')}: <strong className="text-green-700">{t('common.rs')} {filteredSummaries.filter(s => s.isGenerated).reduce((sum, s) => sum + s.netAmount, 0).toFixed(2)}</strong></span>
                 </div>
               </div>
             )}
@@ -974,11 +976,11 @@ const InvoicesPage = () => {
                   <div className="flex items-center gap-2">
                     {currentInvoice ? (
                       <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                        Generated
+                        {t('invoices.generated')}
                       </span>
                     ) : (
                       <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-                        Not Generated
+                        {t('invoices.notGenerated')}
                       </span>
                     )}
                     {currentInvoice?.generatedAt && (
@@ -995,14 +997,14 @@ const InvoicesPage = () => {
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm font-medium"
                         >
                           <Printer className="w-4 h-4" />
-                          Print
+                          {t('common.print')}
                         </button>
                         <button
                           onClick={() => handleDownloadInvoice({ invoice: currentInvoice, customer: selectedCustomer })}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium"
                         >
                           <Download className="w-4 h-4" />
-                          Download PDF
+                          {t('invoices.downloadPdf')}
                         </button>
                       </>
                     )}
@@ -1011,7 +1013,7 @@ const InvoicesPage = () => {
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 text-sm font-medium"
                     >
                       <RefreshCw className="w-4 h-4" />
-                      {currentInvoice ? 'Regenerate' : 'Generate'}
+                      {currentInvoice ? t('invoices.regenerate') : t('common.generate')}
                     </button>
                   </div>
                 </div>
@@ -1059,7 +1061,7 @@ const InvoicesPage = () => {
                       {/* Left: Calendar Grid */}
                       <div className="w-72 border border-gray-300 rounded flex flex-col">
                         <div className="bg-gray-100 px-2 py-1 border-b border-gray-200 text-center font-semibold text-gray-700 text-sm">
-                          {MONTHS[selectedMonth - 1]} {selectedYear}
+                          {t(`months.full.${MONTH_KEYS_FULL[selectedMonth - 1]}`)} {selectedYear}
                         </div>
                         <div className="grid grid-cols-3 text-xs">
                           {/* Header Row */}

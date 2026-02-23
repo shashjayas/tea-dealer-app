@@ -1,7 +1,10 @@
 import React from 'react';
 import { CheckCircle, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CollectionTable = ({ customers, collections, saving, onWeightChange }) => {
+  const { t } = useTranslation();
+
   // Prevent decimal point entry
   const handleKeyDown = (e) => {
     if (e.key === '.' || e.key === ',') {
@@ -19,16 +22,16 @@ const CollectionTable = ({ customers, collections, saving, onWeightChange }) => 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 py-2 grid grid-cols-7 gap-2 font-semibold text-sm">
-        <div className="col-span-2 px-2 py-1">Customer</div>
-        <div className="px-2 py-1">Book No.</div>
-        <div className="px-2 py-1">Route</div>
-        <div className="text-center px-2 py-1">Grade 1 (kg)</div>
-        <div className="text-center px-2 py-1">Grade 2 (kg)</div>
-        <div className="text-center px-2 py-1">Total (kg)</div>
+        <div className="col-span-2 px-2 py-1">{t('customers.customer')}</div>
+        <div className="px-2 py-1">{t('customers.bookNumber')}</div>
+        <div className="px-2 py-1">{t('customers.route')}</div>
+        <div className="text-center px-2 py-1">{t('collections.grade1')} ({t('common.kg')})</div>
+        <div className="text-center px-2 py-1">{t('collections.grade2')} ({t('common.kg')})</div>
+        <div className="text-center px-2 py-1">{t('common.total')} ({t('common.kg')})</div>
       </div>
       <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
         {customers.length === 0 ? (
-          <div className="px-3 py-8 text-center text-gray-500">No customers found</div>
+          <div className="px-3 py-8 text-center text-gray-500">{t('common.noData')}</div>
         ) : (
           customers.map((customer) => {
             const customerCollections = collections[customer.id] || {};
@@ -76,7 +79,7 @@ const CollectionTable = ({ customers, collections, saving, onWeightChange }) => 
                     placeholder="0"
                   />
                   {saving[`${customer.id}_GRADE_1`] && (
-                    <span className="text-xs text-blue-600">Saving...</span>
+                    <span className="text-xs text-blue-600">{t('common.saving')}</span>
                   )}
                 </div>
                 <div className="px-2">
@@ -91,7 +94,7 @@ const CollectionTable = ({ customers, collections, saving, onWeightChange }) => 
                     placeholder="0"
                   />
                   {saving[`${customer.id}_GRADE_2`] && (
-                    <span className="text-xs text-blue-600">Saving...</span>
+                    <span className="text-xs text-blue-600">{t('common.saving')}</span>
                   )}
                 </div>
                 <div className="text-center font-semibold text-gray-900 px-2">

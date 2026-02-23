@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Leaf, Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getLoginBackground, getDealerInfo } from '../services/settingsService';
+import LanguageToggle from '../components/common/LanguageToggle';
 
 const CACHE_KEY = 'login_background_cache';
 const DEALER_CACHE_KEY = 'dealer_info_cache';
 
 const LoginPage = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -63,7 +66,7 @@ const LoginPage = ({ onLogin }) => {
     setLoading(true);
     const result = await onLogin(username, password);
     if (!result.success) {
-      setError('Invalid username or password');
+      setError(t('auth.invalidCredentials'));
     }
     setLoading(false);
   };
@@ -88,27 +91,30 @@ const LoginPage = ({ onLogin }) => {
       <div className="flex-1 flex items-center justify-center p-4 relative z-10">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-8 text-white text-center">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-8 text-white text-center relative">
+              <div className="absolute top-4 right-4">
+                <LanguageToggle compact />
+              </div>
               <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-4">
                 <Leaf className="w-12 h-12" />
               </div>
-              <h1 className="text-3xl font-bold mb-2">Tea Dealer Pro</h1>
-              <p className="text-green-100">Manage your tea collections efficiently</p>
+              <h1 className="text-3xl font-bold mb-2">{t('common.appName')}</h1>
+              <p className="text-green-100">{t('auth.manageTeaCollections')}</p>
             </div>
             <div className="p-8 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.username')}</label>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  placeholder="Enter username"
+                  placeholder={t('auth.enterUsername')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.password')}</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -116,7 +122,7 @@ const LoginPage = ({ onLogin }) => {
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                     className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                    placeholder="Enter password"
+                    placeholder={t('auth.enterPassword')}
                   />
                   <button
                     type="button"
@@ -137,7 +143,7 @@ const LoginPage = ({ onLogin }) => {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
               >
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? t('auth.signingIn') : t('auth.signIn')}
               </button>
             </div>
           </div>
@@ -152,7 +158,7 @@ const LoginPage = ({ onLogin }) => {
               <span className="font-medium">{dealerInfo.name}</span>
             )}
             {dealerInfo.regNumber && (
-              <span className="text-gray-300">Reg: {dealerInfo.regNumber}</span>
+              <span className="text-gray-300">{t('auth.registration')}: {dealerInfo.regNumber}</span>
             )}
             {dealerInfo.address && (
               <span className="text-gray-300">{dealerInfo.address}</span>

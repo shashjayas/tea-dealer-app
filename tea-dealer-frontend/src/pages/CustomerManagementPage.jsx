@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Upload } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getCollectionsByDate } from '../services/collectionService';
 import { useCustomerContext } from '../contexts/CustomerContext';
 import { useSorting } from '../hooks/useSorting';
@@ -14,6 +15,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog';
 import { getCollectionsByCustomer } from '../services/collectionService';
 
 const CustomerManagementPage = () => {
+  const { t } = useTranslation();
   const { customers, loading, addCustomer, editCustomer, removeCustomer } = useCustomerContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -44,11 +46,11 @@ const CustomerManagementPage = () => {
       : await addCustomer(formData);
 
     if (result.success) {
-      showToast(editingCustomer ? 'Customer updated successfully' : 'Customer added successfully', 'success');
+      showToast(editingCustomer ? t('toast.customerUpdatedSuccess') : t('toast.customerAddedSuccess'), 'success');
       resetForm();
       setShowForm(false);
     } else {
-      showToast('Failed to save customer', 'error');
+      showToast(t('toast.customerSaveFailed'), 'error');
     }
   };
 
@@ -73,7 +75,7 @@ const CustomerManagementPage = () => {
       // Check if customer has any collections
       const collections = await getCollectionsByCustomer(id);
       if (collections && collections.length > 0) {
-        showToast('Cannot delete customer with existing collection records', 'warning');
+        showToast(t('customers.cannotDeleteWithCollections'), 'warning');
         return;
       }
 
@@ -88,9 +90,9 @@ const CustomerManagementPage = () => {
   const confirmDelete = async () => {
     const result = await removeCustomer(confirmDialog.customerId);
     if (result.success) {
-      showToast('Customer deleted successfully', 'success');
+      showToast(t('toast.customerDeletedSuccess'), 'success');
     } else {
-      showToast('Failed to delete customer', 'error');
+      showToast(t('toast.customerDeleteFailed'), 'error');
     }
     setConfirmDialog({ isOpen: false, customerId: null });
   };
@@ -113,7 +115,7 @@ const CustomerManagementPage = () => {
 
   const handleImport = async () => {
     if (importPreview.length === 0) {
-      showToast('No valid customers to import', 'warning');
+      showToast(t('toast.noValidCustomers'), 'warning');
       return;
     }
 
@@ -136,14 +138,14 @@ const CustomerManagementPage = () => {
 
     if (success > 0) {
       showToast(
-        `Successfully imported ${success} customer(s)${fail > 0 ? `. Failed: ${fail}` : ''}`,
+        t('toast.importSuccess', { count: success }) + (fail > 0 ? `. Failed: ${fail}` : ''),
         'success',
         5000
       );
       setShowImport(false);
       resetImport();
     } else {
-      showToast(`Import failed. ${fail} customer(s) could not be imported`, 'error');
+      showToast(t('toast.importFailed'), 'error');
     }
   };
 
@@ -167,7 +169,7 @@ const CustomerManagementPage = () => {
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
             <Upload className="w-5 h-5" />
-            Import CSV
+            {t('customers.importCSV')}
           </button>
           <button
             onClick={() => {
@@ -177,7 +179,7 @@ const CustomerManagementPage = () => {
             className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-emerald-700"
           >
             <Plus className="w-5 h-5" />
-            Add Customer
+            {t('customers.addCustomer')}
           </button>
         </div>
       </div>
@@ -227,12 +229,12 @@ const CustomerManagementPage = () => {
         isOpen={confirmDialog.isOpen}
         onClose={() => setConfirmDialog({ isOpen: false, customerId: null })}
         onConfirm={confirmDelete}
-        title="Delete Customer"
-        message="Are you sure you want to delete this customer? This action cannot be undone."
+        title={t('confirmDialog.deleteCustomerTitle')}
+        message={t('customers.confirmDelete')}
       />
 
       <div className="mt-4 text-sm text-gray-600">
-        Showing {sortedData.length} of {customers.length} customers
+        {t('customers.showingOf', { count: sortedData.length, total: customers.length })}
       </div>
     </div>
   );

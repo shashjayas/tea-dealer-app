@@ -1,14 +1,17 @@
 import React from 'react';
 import { Save, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
+  const { t } = useTranslation();
+
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {/* Tea Packet Price */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Tea Packet Price (Rs.)
+            {t('rates.teaPacketPriceRs')}
           </label>
           <div className="relative">
             <input
@@ -23,7 +26,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
               <button
                 onClick={() => onChange({ ...formData, teaPacketPrice: '' })}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                title="Clear field"
+                title={t('rates.clearField')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -34,7 +37,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
         {/* Supply Deduction Percentage */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Supply Deduction (%)
+            {t('rates.supplyDeductionPercent')}
           </label>
           <div className="relative">
             <input
@@ -49,7 +52,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
               <button
                 onClick={() => onChange({ ...formData, supplyDeductionPercentage: '' })}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                title="Clear field"
+                title={t('rates.clearField')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -60,7 +63,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
         {/* Transport Rate Per Kg */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Transport (Rs./kg)
+            {t('rates.transportRsKg')}
           </label>
           <div className="relative">
             <input
@@ -75,7 +78,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
               <button
                 onClick={() => onChange({ ...formData, transportRatePerKg: '' })}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                title="Clear field"
+                title={t('rates.clearField')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -86,7 +89,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
         {/* Stamp Fee */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Stamp Fee (Rs.)
+            {t('rates.stampFeeRs')}
           </label>
           <div className="relative">
             <input
@@ -101,7 +104,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
               <button
                 onClick={() => onChange({ ...formData, stampFee: '' })}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                title="Clear field"
+                title={t('rates.clearField')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -112,7 +115,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
         {/* Grade 1 Rate */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Grade 1 Rate (Rs./kg)
+            {t('rates.grade1RateRsKg')}
           </label>
           <div className="relative">
             <input
@@ -127,7 +130,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
               <button
                 onClick={() => onChange({ ...formData, grade1Rate: '' })}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                title="Clear field"
+                title={t('rates.clearField')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -138,7 +141,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
         {/* Grade 2 Rate */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Grade 2 Rate (Rs./kg)
+            {t('rates.grade2RateRsKg')}
           </label>
           <div className="relative">
             <input
@@ -153,7 +156,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
               <button
                 onClick={() => onChange({ ...formData, grade2Rate: '' })}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                title="Clear field"
+                title={t('rates.clearField')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -169,7 +172,7 @@ const RateForm = ({ formData, onChange, onSave, saving, isEditing }) => {
             className="w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-1.5 rounded-md hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50 text-sm font-medium"
           >
             <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </div>

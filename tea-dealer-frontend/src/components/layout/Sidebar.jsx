@@ -1,8 +1,11 @@
 import React from 'react';
 import { Leaf } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { menuItems } from '../../constants/menuItems';
+import LanguageToggle from '../common/LanguageToggle';
 
 const Sidebar = ({ currentPage, onPageChange, user, onLogout, isOpen, pageVisibility }) => {
+  const { t } = useTranslation();
   // Filter menu items based on user role and page visibility settings
   const filteredMenuItems = menuItems.filter(item => {
     // Check role requirement first
@@ -46,17 +49,20 @@ const Sidebar = ({ currentPage, onPageChange, user, onLogout, isOpen, pageVisibi
             }`}
           >
             <item.icon className="w-5 h-5" />
-            <span className="font-medium">{item.label}</span>
+            <span className="font-medium">{t(item.labelKey)}</span>
           </button>
         ))}
       </nav>
 
-      <div className="flex-shrink-0 p-4 border-t border-green-600">
+      <div className="flex-shrink-0 p-4 border-t border-green-600 space-y-3">
+        <div className="flex justify-center">
+          <LanguageToggle compact />
+        </div>
         <button
           onClick={onLogout}
           className="w-full px-4 py-3 bg-yellow-500 hover:bg-yellow-600 rounded-lg font-medium text-gray-900"
         >
-          Logout
+          {t('common.logout')}
         </button>
       </div>
     </div>

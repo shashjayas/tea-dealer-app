@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from './hooks/useAuth';
 import { CustomerProvider } from './contexts/CustomerContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import CustomerManagementPage from './pages/CustomerManagementPage';
@@ -16,11 +17,16 @@ const App = () => {
   const { user, login, logout } = useAuth();
 
   if (!user) {
-    return <LoginPage onLogin={login} />;
+    return (
+      <LanguageProvider>
+        <LoginPage onLogin={login} />
+      </LanguageProvider>
+    );
   }
 
   return (
-    <CustomerProvider>
+    <LanguageProvider>
+      <CustomerProvider>
       <DashboardLayout user={user} onLogout={logout}>
         {({ currentPage }) => (
           <>
@@ -43,6 +49,7 @@ const App = () => {
         )}
       </DashboardLayout>
     </CustomerProvider>
+    </LanguageProvider>
   );
 };
 

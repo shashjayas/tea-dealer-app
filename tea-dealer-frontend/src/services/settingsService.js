@@ -68,6 +68,8 @@ export const SETTING_KEYS = {
   STOCK_TAB_TEA_PACKETS_ENABLED: 'stock_tab_tea_packets_enabled',
   // Deduction rounding mode
   DEDUCTION_ROUNDING_MODE: 'deduction_rounding_mode',
+  // Language preference
+  LANGUAGE: 'language',
 };
 
 // Deduction rounding mode options
@@ -254,4 +256,19 @@ export const getDeductionRoundingMode = async () => {
 
 export const saveDeductionRoundingMode = async (mode) => {
   return await saveSetting(SETTING_KEYS.DEDUCTION_ROUNDING_MODE, mode || DEDUCTION_ROUNDING_MODES.HALF_UP);
+};
+
+// Language preference helpers
+export const LANGUAGES = {
+  ENGLISH: 'en',
+  SINHALA: 'si',
+};
+
+export const getLanguage = async () => {
+  const value = await getSettingValue(SETTING_KEYS.LANGUAGE);
+  return value || LANGUAGES.ENGLISH; // Default to English
+};
+
+export const saveLanguage = async (language) => {
+  return await saveSetting(SETTING_KEYS.LANGUAGE, language || LANGUAGES.ENGLISH);
 };
