@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useRates } from '../hooks/useRates';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
@@ -7,12 +8,13 @@ import MonthTabs from '../components/rates/MonthTabs';
 import RateForm from '../components/rates/RateForm';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
-const MONTH_NAMES = [
-  '', 'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+const MONTH_KEYS = [
+  '', 'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december'
 ];
 
 const ManageRatesPage = () => {
+  const { t } = useTranslation();
   const {
     rates,
     selectedYear,
@@ -110,10 +112,10 @@ const ManageRatesPage = () => {
     const result = await saveMonthlyRate(cleanData);
 
     if (result.success) {
-      showToast('Rates saved successfully', 'success');
+      showToast(t('toast.rateSavedSuccess'), 'success');
       fetchRatesByYear(selectedYear);
     } else {
-      showToast('Failed to save rates', 'error');
+      showToast(t('toast.rateSaveFailed'), 'error');
     }
   };
 
@@ -122,10 +124,10 @@ const ManageRatesPage = () => {
     if (currentRate && currentRate.id) {
       const result = await deleteMonthlyRate(currentRate.id, selectedMonth);
       if (result.success) {
-        showToast('Rates deleted successfully', 'success');
+        showToast(t('toast.rateClearedSuccess'), 'success');
         setShowDeleteConfirm(false);
       } else {
-        showToast('Failed to delete rates', 'error');
+        showToast(t('toast.rateSaveFailed'), 'error');
       }
     }
   };
@@ -149,8 +151,8 @@ const ManageRatesPage = () => {
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
         <ConfirmDialog
-          title="Delete Rates"
-          message={`Are you sure you want to delete the rates for ${MONTH_NAMES[selectedMonth]} ${selectedYear}? This action cannot be undone.`}
+          title={t('rates.clearRate')}
+          message={`${t('confirmDialog.areYouSure')} ${t('confirmDialog.cannotBeUndone')}`}
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />
@@ -182,9 +184,9 @@ const ManageRatesPage = () => {
 
           <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg px-4 py-1.5">
             <span className="text-sm font-semibold">
-              {MONTH_NAMES[selectedMonth]} {selectedYear}
+              {t(`months.full.${MONTH_KEYS[selectedMonth]}`)} {selectedYear}
               <span className="text-xs opacity-90 ml-2">
-                {isEditing ? '(Editing)' : '(New)'}
+                {isEditing ? `(${t('common.edit')})` : `(${t('common.add')})`}
               </span>
             </span>
           </div>
@@ -201,7 +203,7 @@ const ManageRatesPage = () => {
         <div className="mt-3">
           {loading ? (
             <div className="p-4 text-center">
-              <div className="text-gray-500 text-sm">Loading...</div>
+              <div className="text-gray-500 text-sm">{t('common.loading')}</div>
             </div>
           ) : (
             <RateForm

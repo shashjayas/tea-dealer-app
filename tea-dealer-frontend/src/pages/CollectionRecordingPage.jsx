@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useCustomerContext } from '../contexts/CustomerContext';
 import { useCollections } from '../hooks/useCollections';
 import { useToast } from '../hooks/useToast';
@@ -10,6 +11,7 @@ import QuickAddModal from '../components/collections/QuickAddModal';
 import CollectionSummary from '../components/collections/CollectionSummary';
 
 const CollectionRecordingPage = () => {
+  const { t } = useTranslation();
   const { customers } = useCustomerContext();
   const {
     collections,
@@ -49,14 +51,14 @@ const CollectionRecordingPage = () => {
 
   const handleQuickAdd = async () => {
     if (!quickAddForm.customerId || !quickAddForm.weightKg) {
-      showToast('Please select customer and enter weight', 'warning');
+      showToast(t('collections.selectCustomerAndWeight'), 'warning');
       return;
     }
 
     const result = await quickAddCollection(quickAddForm);
 
     if (result.success) {
-      showToast('Collection added successfully', 'success');
+      showToast(t('toast.collectionAddedSuccess'), 'success');
       setShowQuickAdd(false);
       setQuickAddForm({
         customerId: '',
@@ -69,7 +71,7 @@ const CollectionRecordingPage = () => {
         fetchCollections(selectedDate);
       }
     } else {
-      showToast('Failed to add collection', 'error');
+      showToast(t('toast.collectionAddFailed'), 'error');
     }
   };
 

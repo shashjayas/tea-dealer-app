@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Save, Search, Plus, Trash2, Calendar } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useCustomerContext } from '../contexts/CustomerContext';
 import { getDeductionByCustomerAndPeriod, calculateMonthlyTotals, saveDeduction, getAutoArrears } from '../services/deductionService';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/common/Toast';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 const DeductionsPage = () => {
+  const { t } = useTranslation();
   const { customers } = useCustomerContext();
   const { toasts, showToast, removeToast } = useToast();
 
@@ -164,7 +166,7 @@ const DeductionsPage = () => {
       console.error('Error loading data:', error);
       // Don't show error toast for normal "not found" cases
       if (!error.message?.includes('404') && !error.message?.includes('Not Found')) {
-        showToast('Error loading data', 'error');
+        showToast(t('toast.errorLoadingData'), 'error');
       }
     } finally {
       setLoading(false);
@@ -250,7 +252,7 @@ const DeductionsPage = () => {
 
   const handleSave = async () => {
     if (!selectedCustomer) {
-      showToast('Please select a customer', 'error');
+      showToast(t('toast.selectCustomer'), 'error');
       return;
     }
 
@@ -283,10 +285,10 @@ const DeductionsPage = () => {
       console.log('Saving deduction data:', deductionData);
       console.log('advanceEntries being saved:', deductions.advanceEntries, '-> stringified:', JSON.stringify(deductions.advanceEntries));
       await saveDeduction(deductionData);
-      showToast('Deductions saved successfully', 'success');
+      showToast(t('toast.deductionsSavedSuccess'), 'success');
     } catch (error) {
       console.error('Error saving deductions:', error);
-      showToast('Failed to save deductions', 'error');
+      showToast(t('toast.deductionsSaveFailed'), 'error');
     } finally {
       setSaving(false);
     }
@@ -330,7 +332,7 @@ const DeductionsPage = () => {
                 <ChevronLeft className="w-3 h-3 text-gray-600" />
               </button>
               <span className="text-xs font-semibold text-gray-800 min-w-[40px] text-center">
-                {MONTHS[selectedMonth - 1]}
+                {t(`months.short.${MONTH_KEYS[selectedMonth - 1]}`)}
               </span>
               <button onClick={() => handleMonthChange(1)} className="p-0.5 hover:bg-gray-200 rounded">
                 <ChevronRight className="w-3 h-3 text-gray-600" />
@@ -343,7 +345,7 @@ const DeductionsPage = () => {
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
             <input
               type="text"
-              placeholder="Search customer..."
+              placeholder={t('customers.searchCustomer')}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -397,7 +399,7 @@ const DeductionsPage = () => {
                     {selectedCustomer.bookNumber} - {selectedCustomer.growerNameEnglish}
                   </span>
                 ) : (
-                  <span className="text-gray-400">No customer selected</span>
+                  <span className="text-gray-400">{t('customers.noCustomerSelected')}</span>
                 )}
               </div>
               {showCustomerDropdown && (
@@ -445,28 +447,28 @@ const DeductionsPage = () => {
             <div className="grid grid-cols-3 gap-2 mb-3">
               {/* Monthly Total */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
-                <div className="text-xs text-blue-600 mb-0.5">This Month Total</div>
+                <div className="text-xs text-blue-600 mb-0.5">{t('deductions.thisMonthTotal')}</div>
                 <div className="text-base font-bold text-blue-800">Rs. {parseFloat(monthlyTotals.totalAmount || 0).toFixed(2)}</div>
                 <div className="text-xs text-blue-500">
-                  Collected: {Math.round(parseFloat(monthlyTotals.totalKg || 0))}kg
+                  {t('deductions.collected')}: {Math.round(parseFloat(monthlyTotals.totalKg || 0))}{t('common.kg')}
                   {monthlyTotals.supplyDeductionKg > 0 && (
                     <span className="text-orange-500 ml-1">
                       (-{Math.round(parseFloat(monthlyTotals.supplyDeductionKg))}kg)
                     </span>
                   )}
-                  {' = '}Payable: {Math.round(parseFloat(monthlyTotals.payableKg || 0))}kg
+                  {' = '}{t('deductions.payable')}: {Math.round(parseFloat(monthlyTotals.payableKg || 0))}{t('common.kg')}
                 </div>
               </div>
 
               {/* Total Deductions */}
               <div className="bg-red-50 border border-red-200 rounded-lg p-2">
-                <div className="text-xs text-red-600 mb-0.5">Total Deductions</div>
+                <div className="text-xs text-red-600 mb-0.5">{t('deductions.totalDeductions')}</div>
                 <div className="text-base font-bold text-red-800">Rs. {totalDeductions.toFixed(2)}</div>
               </div>
 
               {/* Net Amount */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-2">
-                <div className="text-xs text-green-600 mb-0.5">Net Amount</div>
+                <div className="text-xs text-green-600 mb-0.5">{t('deductions.netAmount')}</div>
                 <div className="text-base font-bold text-green-800">Rs. {netAmount.toFixed(2)}</div>
               </div>
             </div>
@@ -476,14 +478,14 @@ const DeductionsPage = () => {
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-semibold text-orange-700">Auto Arrears from Previous Month</span>
+                    <span className="text-sm font-semibold text-orange-700">{t('deductions.autoArrearsFromPreviousMonth')}</span>
                     <p className="text-xs text-orange-600 mt-0.5">
-                      {MONTHS[autoArrearsInfo.previousMonth - 1]} {autoArrearsInfo.previousYear} had negative net pay of Rs. {Math.abs(parseFloat(autoArrearsInfo.previousNetAmount || 0)).toFixed(2)}
+                      {t(`months.short.${MONTH_KEYS[autoArrearsInfo.previousMonth - 1]}`)} {autoArrearsInfo.previousYear} {t('deductions.hadNegativeNetPay')} {t('common.rs')} {Math.abs(parseFloat(autoArrearsInfo.previousNetAmount || 0)).toFixed(2)}
                     </p>
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-orange-800">Rs. {parseFloat(autoArrearsInfo.autoArrearsAmount).toFixed(2)}</div>
-                    <span className="text-xs text-orange-500">Will be added automatically</span>
+                    <span className="text-xs text-orange-500">{t('deductions.willBeAddedAutomatically')}</span>
                   </div>
                 </div>
               </div>
@@ -494,7 +496,7 @@ const DeductionsPage = () => {
               {/* Additional Manual Arrears */}
               <div>
                 <label className="block text-xs font-medium text-rose-700 mb-1">
-                  {autoArrearsInfo?.autoArrearsEnabled ? 'Additional Arrears (Rs.)' : 'Arrears (Rs.)'}
+                  {autoArrearsInfo?.autoArrearsEnabled ? t('deductions.additionalArrears') : t('deductions.arrears')} ({t('common.rs')})
                 </label>
                 <input
                   type="number"
@@ -505,16 +507,16 @@ const DeductionsPage = () => {
                   placeholder="0.00"
                 />
                 {autoArrearsInfo?.autoArrearsEnabled && !autoArrearsInfo?.autoArrearsAmount && (
-                  <p className="text-xs text-gray-400 mt-0.5">No auto-arrears (prev. month OK)</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{t('deductions.noAutoArrears')}</p>
                 )}
               </div>
 
               {/* Advance with Add button */}
               <div>
                 <label className="block text-xs font-medium text-blue-700 mb-1">
-                  Advance (Rs.)
+                  {t('deductions.advance')} ({t('common.rs')})
                   {calculateAdvanceTotal() > 0 && (
-                    <span className="text-blue-500 ml-1">({deductions.advanceEntries.length} entries)</span>
+                    <span className="text-blue-500 ml-1">({deductions.advanceEntries.length} {t('deductions.entries')})</span>
                   )}
                 </label>
                 <div className="flex gap-1">
@@ -533,7 +535,7 @@ const DeductionsPage = () => {
                         type="button"
                         onClick={() => setShowAdvanceDatePicker(!showAdvanceDatePicker)}
                         className={`p-0.5 rounded hover:bg-blue-200 ${newAdvanceDate ? 'text-blue-600' : 'text-gray-400'}`}
-                        title={newAdvanceDate || 'Select date (optional)'}
+                        title={newAdvanceDate || t('deductions.selectDate')}
                       >
                         <Calendar className="w-4 h-4" />
                       </button>
@@ -560,7 +562,7 @@ const DeductionsPage = () => {
                     onClick={addAdvanceEntry}
                     disabled={!newAdvanceAmount || parseFloat(newAdvanceAmount) <= 0}
                     className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="Add advance entry"
+                    title={t('deductions.addAdvanceEntry')}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -569,7 +571,7 @@ const DeductionsPage = () => {
 
               {/* Loan */}
               <div>
-                <label className="block text-xs font-medium text-purple-700 mb-1">Loan (Rs.)</label>
+                <label className="block text-xs font-medium text-purple-700 mb-1">{t('deductions.loan')} ({t('common.rs')})</label>
                 <input
                   type="number"
                   step="0.01"
@@ -582,7 +584,7 @@ const DeductionsPage = () => {
 
               {/* Fertilizer 1 */}
               <div>
-                <label className="block text-xs font-medium text-green-700 mb-1">Fertilizer 1 (Rs.)</label>
+                <label className="block text-xs font-medium text-green-700 mb-1">{t('deductions.fertilizer1')} ({t('common.rs')})</label>
                 <input
                   type="number"
                   step="0.01"
@@ -595,7 +597,7 @@ const DeductionsPage = () => {
 
               {/* Fertilizer 2 */}
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">Fertilizer 2 (Rs.)</label>
+                <label className="block text-xs font-medium text-emerald-700 mb-1">{t('deductions.fertilizer2')} ({t('common.rs')})</label>
                 <input
                   type="number"
                   step="0.01"
@@ -608,7 +610,7 @@ const DeductionsPage = () => {
 
               {/* Agrochemicals */}
               <div>
-                <label className="block text-xs font-medium text-cyan-700 mb-1">Agrochemicals (Rs.)</label>
+                <label className="block text-xs font-medium text-cyan-700 mb-1">{t('deductions.agrochemicals')} ({t('common.rs')})</label>
                 <input
                   type="number"
                   step="0.01"
@@ -622,9 +624,9 @@ const DeductionsPage = () => {
               {/* Tea Packets Count */}
               <div>
                 <label className="block text-xs font-medium text-amber-700 mb-1">
-                  Tea Packets
+                  {t('deductions.teaPackets')}
                   {deductions.teaPacketsCount && monthlyTotals?.teaPacketPrice && (
-                    <span className="text-amber-600 ml-1">(Rs. {calculateTeaPacketsTotal().toFixed(0)})</span>
+                    <span className="text-amber-600 ml-1">({t('common.rs')} {calculateTeaPacketsTotal().toFixed(0)})</span>
                   )}
                 </label>
                 <input
@@ -638,7 +640,7 @@ const DeductionsPage = () => {
 
               {/* Other Deductions */}
               <div>
-                <label className="block text-xs font-medium text-pink-700 mb-1">Other (Rs.)</label>
+                <label className="block text-xs font-medium text-pink-700 mb-1">{t('deductions.other')} ({t('common.rs')})</label>
                 <input
                   type="number"
                   step="0.01"
@@ -652,7 +654,7 @@ const DeductionsPage = () => {
               {/* Transport (Auto-calculated) */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">
-                  Transport {monthlyTotals?.transportRatePerKg > 0 && `(@${parseFloat(monthlyTotals.transportRatePerKg).toFixed(1)}/kg)`}
+                  {t('deductions.transport')} {monthlyTotals?.transportRatePerKg > 0 && `(@${parseFloat(monthlyTotals.transportRatePerKg).toFixed(1)}/${t('common.kg')})`}
                 </label>
                 <input
                   type="text"
@@ -664,7 +666,7 @@ const DeductionsPage = () => {
 
               {/* Stamp Fee (Auto-calculated) */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Stamp Fee</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{t('deductions.stampFee')}</label>
                 <input
                   type="text"
                   value={`Rs. ${parseFloat(monthlyTotals?.stampFee || 0).toFixed(2)}`}
@@ -675,7 +677,7 @@ const DeductionsPage = () => {
 
               {/* Other Deductions Note - Full Width */}
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Other Deductions Note</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('deductions.otherDeductionsNote')}</label>
                 <input
                   type="text"
                   value={deductions.otherDeductionsNote}
@@ -691,8 +693,8 @@ const DeductionsPage = () => {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-blue-700">
-                    Advance Payments
-                    <span className="ml-2 text-blue-600">(Total: Rs. {calculateAdvanceTotal().toFixed(2)})</span>
+                    {t('deductions.advancePayments')}
+                    <span className="ml-2 text-blue-600">({t('common.total')}: {t('common.rs')} {calculateAdvanceTotal().toFixed(2)})</span>
                   </span>
                 </div>
 
@@ -700,7 +702,7 @@ const DeductionsPage = () => {
                   {deductions.advanceEntries.map((entry, index) => (
                     <div key={index} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-blue-200">
                       <span className="text-xs text-gray-500">
-                        {entry.date ? new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'No date'}
+                        {entry.date ? new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : t('deductions.noDate')}
                       </span>
                       <span className="text-sm font-medium text-blue-800">Rs. {parseFloat(entry.amount).toFixed(2)}</span>
                       <button
@@ -724,7 +726,7 @@ const DeductionsPage = () => {
                 className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                {saving ? 'Saving...' : 'Save Deductions'}
+                {saving ? t('common.saving') : t('deductions.saveDeductions')}
               </button>
             </div>
           </>
@@ -732,7 +734,7 @@ const DeductionsPage = () => {
 
         {loading && (
           <div className="text-center py-8">
-            <div className="text-gray-500">Loading...</div>
+            <div className="text-gray-500">{t('common.loading')}</div>
           </div>
         )}
       </div>

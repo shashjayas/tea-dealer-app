@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Package, CheckCircle, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import StatCard from '../components/dashboard/StatCard';
 import CollectionChart from '../components/dashboard/CollectionChart';
 import { getCollectionsByDate } from '../services/collectionService';
 import { useCustomerContext } from '../contexts/CustomerContext';
 
 const DashboardPage = () => {
+  const { t } = useTranslation();
   const { customers } = useCustomerContext();
   const [todayCollection, setTodayCollection] = useState({ weight: 0, count: 0 });
 
@@ -38,10 +40,10 @@ const DashboardPage = () => {
   }, []);
 
   const stats = [
-    { label: 'Total Customers', value: customers.length, icon: Users, color: 'from-green-500 to-emerald-500' },
-    { label: "Today's Collection", value: `${todayCollection.weight} kg`, icon: Package, color: 'from-teal-500 to-cyan-500' },
-    { label: 'Collected Today', value: `${todayCollection.count} customers`, icon: CheckCircle, color: 'from-emerald-500 to-green-500' },
-    { label: 'Pending Collection', value: `${customers.length - todayCollection.count} customers`, icon: AlertCircle, color: 'from-orange-500 to-amber-500' },
+    { label: t('dashboard.totalCustomers'), value: customers.length, icon: Users, color: 'from-green-500 to-emerald-500' },
+    { label: t('dashboard.todaysCollection'), value: `${todayCollection.weight} ${t('common.kg')}`, icon: Package, color: 'from-teal-500 to-cyan-500' },
+    { label: t('dashboard.collectedToday'), value: `${todayCollection.count} ${t('dashboard.customers')}`, icon: CheckCircle, color: 'from-emerald-500 to-green-500' },
+    { label: t('dashboard.pendingCollection'), value: `${customers.length - todayCollection.count} ${t('dashboard.customers')}`, icon: AlertCircle, color: 'from-orange-500 to-amber-500' },
   ];
 
   return (

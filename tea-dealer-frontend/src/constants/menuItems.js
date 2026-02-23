@@ -7,13 +7,13 @@ export const ROLES = {
 };
 
 export const menuItems = [
-  { label: 'Dashboard', icon: TrendingUp, page: 'dashboard' },
-  { label: 'Manage Customers', icon: Users, page: 'customers' },
-  { label: 'Daily Collection', icon: Package, page: 'collections' },
-  { label: 'Manage Rates', icon: DollarSign, page: 'rates' },
-  { label: 'Add Deductions', icon: MinusCircle, page: 'deductions' },
-  { label: 'Stock', icon: Warehouse, page: 'stock' },
-  { label: 'Invoices', icon: FileText, page: 'invoices' },
-  { label: 'View Reports', icon: Eye, page: 'reports' },
-  { label: 'Configurations', icon: Settings, page: 'configurations', requiredRole: ROLES.SUPER_ADMIN },
+  { labelKey: 'navigation.dashboard', icon: TrendingUp, page: 'dashboard' },
+  { labelKey: 'navigation.customers', icon: Users, page: 'customers' },
+  { labelKey: 'navigation.collections', icon: Package, page: 'collections' },
+  { labelKey: 'navigation.rates', icon: DollarSign, page: 'rates' },
+  { labelKey: 'navigation.deductions', icon: MinusCircle, page: 'deductions' },
+  { labelKey: 'navigation.stock', icon: Warehouse, page: 'stock' },
+  { labelKey: 'navigation.invoices', icon: FileText, page: 'invoices' },
+  { labelKey: 'navigation.reports', icon: Eye, page: 'reports' },
+  { labelKey: 'navigation.configurations', icon: Settings, page: 'configurations', requiredRole: ROLES.SUPER_ADMIN },
 ];

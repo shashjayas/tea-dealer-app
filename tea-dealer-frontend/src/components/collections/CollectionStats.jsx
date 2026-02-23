@@ -1,7 +1,10 @@
 import React from 'react';
 import { Calendar, Package, Users, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CollectionStats = ({ selectedDate, onDateChange, totalWeight, grade1Total, grade2Total, collectedCount, totalCustomers, onQuickAdd }) => {
+  const { t } = useTranslation();
+
   const handlePreviousDay = () => {
     const currentDate = new Date(selectedDate);
     currentDate.setDate(currentDate.getDate() - 1);
@@ -21,7 +24,7 @@ const CollectionStats = ({ selectedDate, onDateChange, totalWeight, grade1Total,
         <div className="flex items-center gap-2">
           <Calendar className="w-6 h-6 text-green-600 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-600">Selected Date</p>
+            <p className="text-xs text-gray-600">{t('collections.selectedDate')}</p>
             <div className="flex items-center gap-1">
               <button
                 onClick={handlePreviousDay}
@@ -52,12 +55,12 @@ const CollectionStats = ({ selectedDate, onDateChange, totalWeight, grade1Total,
       <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-lg p-3">
         <div className="flex items-center justify-between">
           <div className="w-full">
-            <p className="text-xs opacity-90">Total Collection</p>
-            <p className="text-xl font-bold">{totalWeight} kg</p>
+            <p className="text-xs opacity-90">{t('collections.totalCollection')}</p>
+            <p className="text-xl font-bold">{totalWeight} {t('common.kg')}</p>
             <div className="flex gap-2 mt-1">
-              <span className="text-xs opacity-75">G1: {grade1Total}kg</span>
+              <span className="text-xs opacity-75">G1: {grade1Total}{t('common.kg')}</span>
               <span className="text-xs opacity-75">•</span>
-              <span className="text-xs opacity-75">G2: {grade2Total}kg</span>
+              <span className="text-xs opacity-75">G2: {grade2Total}{t('common.kg')}</span>
             </div>
           </div>
           <Package className="w-8 h-8 opacity-80 flex-shrink-0" />
@@ -68,7 +71,7 @@ const CollectionStats = ({ selectedDate, onDateChange, totalWeight, grade1Total,
       <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl shadow-lg p-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs opacity-90">Customers Collected</p>
+            <p className="text-xs opacity-90">{t('collections.customersCollected')}</p>
             <p className="text-xl font-bold">{collectedCount} / {totalCustomers}</p>
           </div>
           <Users className="w-8 h-8 opacity-80" />
@@ -82,8 +85,8 @@ const CollectionStats = ({ selectedDate, onDateChange, totalWeight, grade1Total,
       >
         <Plus className="w-8 h-8 opacity-80" />
         <div className="text-left">
-          <p className="text-xs opacity-90">Quick Action</p>
-          <p className="text-xl font-bold">Quick Add</p>
+          <p className="text-xs opacity-90">{t('collections.quickAction')}</p>
+          <p className="text-xl font-bold">{t('collections.quickAdd')}</p>
         </div>
       </button>
     </div>

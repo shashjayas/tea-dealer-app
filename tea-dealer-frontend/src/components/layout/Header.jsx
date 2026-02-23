@@ -1,18 +1,22 @@
 import React from 'react';
 import { Menu, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import LanguageToggle from '../common/LanguageToggle';
 
 const Header = ({ currentPage, user, sidebarOpen, onToggleSidebar }) => {
+  const { t } = useTranslation();
+
   const getPageTitle = () => {
     switch (currentPage) {
-      case 'dashboard': return 'Dashboard';
-      case 'customers': return 'Customer Management';
-      case 'collections': return 'Daily Collection';
-      case 'rates': return 'Manage Rates';
-      case 'deductions': return 'Manage Deductions';
-      case 'fertilizer': return 'Fertilizer Management';
-      case 'invoices': return 'Invoices';
-      case 'configurations': return 'Configurations';
-      default: return 'Coming Soon';
+      case 'dashboard': return t('navigation.dashboard');
+      case 'customers': return t('navigation.customers');
+      case 'collections': return t('navigation.collections');
+      case 'rates': return t('navigation.rates');
+      case 'deductions': return t('navigation.deductions');
+      case 'stock': return t('navigation.stock');
+      case 'invoices': return t('navigation.invoices');
+      case 'configurations': return t('navigation.configurations');
+      default: return t('common.comingSoon');
     }
   };
 
@@ -30,9 +34,12 @@ const Header = ({ currentPage, user, sidebarOpen, onToggleSidebar }) => {
             {getPageTitle()}
           </h1>
         </div>
-        <div className="text-sm text-gray-600">
-          <span>Welcome back, </span>
-          <span className="font-semibold text-green-700">{user.username}</span>
+        <div className="flex items-center gap-4">
+          <LanguageToggle />
+          <div className="text-sm text-gray-600">
+            <span>{t('common.welcomeBack')}, </span>
+            <span className="font-semibold text-green-700">{user.username}</span>
+          </div>
         </div>
       </div>
     </header>
