@@ -53,40 +53,44 @@ const CACHE_KEY = 'login_background_cache';
 const DAY_FIELDS = Array.from({ length: 31 }, (_, i) => ({
   id: `day${String(i + 1).padStart(2, '0')}`,
   label: `Day ${String(i + 1).padStart(2, '0')}`,
-  sampleValue: i % 3 === 0 ? '45' : '-'
+  sampleValue: i % 3 === 0 ? '45' : '-',
+  defaultAlign: 'right'
 }));
+
+// Fields that can be placed multiple times on the template
+const MULTI_DROP_FIELDS = ['month', 'year'];
 
 const AVAILABLE_FIELDS = [
   { id: 'bookNumber', label: 'Book Number', sampleValue: '001' },
   { id: 'customerName', label: 'Customer Name (English)', sampleValue: 'John Doe' },
   { id: 'customerNameSinhala', label: 'Customer Name (Sinhala)', sampleValue: 'ජෝන් ඩෝ' },
-  { id: 'month', label: 'Month', sampleValue: 'January' },
-  { id: 'year', label: 'Year', sampleValue: '2025' },
+  { id: 'month', label: 'Month', sampleValue: 'January', allowMultiple: true },
+  { id: 'year', label: 'Year', sampleValue: '2025', allowMultiple: true },
   // Daily collection fields
   ...DAY_FIELDS,
-  { id: 'grade1Kg', label: 'Grade 1 Kg', sampleValue: '150.50' },
-  { id: 'grade2Kg', label: 'Grade 2 Kg', sampleValue: '75.25' },
-  { id: 'totalKg', label: 'Total Kg', sampleValue: '225.75' },
-  { id: 'supplyDeductionKg', label: 'Supply Deduction Kg', sampleValue: '11.29' },
-  { id: 'supplyDeductionPercent', label: 'Supply Deduction %', sampleValue: '5.0' },
-  { id: 'payableKg', label: 'Payable Kg', sampleValue: '214.46' },
-  { id: 'grade1Rate', label: 'Grade 1 Rate', sampleValue: '120.00' },
-  { id: 'grade2Rate', label: 'Grade 2 Rate', sampleValue: '100.00' },
-  { id: 'grade1Amount', label: 'Grade 1 Amount', sampleValue: '18,060.00' },
-  { id: 'grade2Amount', label: 'Grade 2 Amount', sampleValue: '7,525.00' },
-  { id: 'totalAmount', label: 'Gross Amount', sampleValue: '25,585.00' },
-  { id: 'totalDeductions', label: 'Total Deductions', sampleValue: '5,000.00' },
-  { id: 'netAmount', label: 'Net Amount', sampleValue: '20,585.00' },
-  { id: 'advance', label: 'Advance', sampleValue: '2,000.00' },
-  { id: 'loan', label: 'Loan', sampleValue: '1,500.00' },
-  { id: 'fertilizer1', label: 'Fertilizer 1', sampleValue: '500.00' },
-  { id: 'fertilizer2', label: 'Fertilizer 2', sampleValue: '300.00' },
-  { id: 'teaPackets', label: 'Tea Packets', sampleValue: '200.00' },
-  { id: 'transport', label: 'Transport', sampleValue: '250.00' },
-  { id: 'stampFee', label: 'Stamp Fee', sampleValue: '50.00' },
-  { id: 'otherDeductions', label: 'Other Deductions', sampleValue: '200.00' },
-  { id: 'arrears', label: 'Arrears (Last Month)', sampleValue: '0.00' },
-  { id: 'agrochemicals', label: 'Agrochemicals', sampleValue: '0.00' },
+  { id: 'grade1Kg', label: 'Grade 1 Kg', sampleValue: '151', defaultAlign: 'right' },
+  { id: 'grade2Kg', label: 'Grade 2 Kg', sampleValue: '75', defaultAlign: 'right' },
+  { id: 'totalKg', label: 'Total Kg', sampleValue: '226', defaultAlign: 'right' },
+  { id: 'supplyDeductionKg', label: 'Supply Deduction Kg', sampleValue: '11', defaultAlign: 'right' },
+  { id: 'supplyDeductionPercent', label: 'Supply Deduction %', sampleValue: '5.0', defaultAlign: 'right' },
+  { id: 'payableKg', label: 'Payable Kg', sampleValue: '214', defaultAlign: 'right' },
+  { id: 'grade1Rate', label: 'Grade 1 Rate', sampleValue: '120.00', defaultAlign: 'right' },
+  { id: 'grade2Rate', label: 'Grade 2 Rate', sampleValue: '100.00', defaultAlign: 'right' },
+  { id: 'grade1Amount', label: 'Grade 1 Amount', sampleValue: '18,060.00', defaultAlign: 'right' },
+  { id: 'grade2Amount', label: 'Grade 2 Amount', sampleValue: '7,525.00', defaultAlign: 'right' },
+  { id: 'totalAmount', label: 'Gross Amount', sampleValue: '25,585.00', defaultAlign: 'right' },
+  { id: 'totalDeductions', label: 'Total Deductions', sampleValue: '5,000.00', defaultAlign: 'right' },
+  { id: 'netAmount', label: 'Net Amount', sampleValue: '20,585.00', defaultAlign: 'right' },
+  { id: 'advance', label: 'Advance', sampleValue: '2,000.00', defaultAlign: 'right' },
+  { id: 'loan', label: 'Loan', sampleValue: '1,500.00', defaultAlign: 'right' },
+  { id: 'fertilizer1', label: 'Fertilizer 1', sampleValue: '500.00', defaultAlign: 'right' },
+  { id: 'fertilizer2', label: 'Fertilizer 2', sampleValue: '300.00', defaultAlign: 'right' },
+  { id: 'teaPackets', label: 'Tea Packets', sampleValue: '200.00', defaultAlign: 'right' },
+  { id: 'transport', label: 'Transport', sampleValue: '250.00', defaultAlign: 'right' },
+  { id: 'stampFee', label: 'Stamp Fee', sampleValue: '50.00', defaultAlign: 'right' },
+  { id: 'otherDeductions', label: 'Other Deductions', sampleValue: '200.00', defaultAlign: 'right' },
+  { id: 'arrears', label: 'Arrears (Last Month)', sampleValue: '0.00', defaultAlign: 'right' },
+  { id: 'agrochemicals', label: 'Agrochemicals', sampleValue: '0.00', defaultAlign: 'right' },
 ];
 
 const ConfigurationsPage = ({ currentUser }) => {
@@ -627,20 +631,31 @@ const ConfigurationsPage = ({ currentUser }) => {
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
     if (isNew) {
-      if (placedFields.find(f => f.id === fieldId)) {
+      const fieldInfo = AVAILABLE_FIELDS.find(f => f.id === fieldId);
+      const isMultiDropField = MULTI_DROP_FIELDS.includes(fieldId);
+
+      // Check if field already exists (only block if not a multi-drop field)
+      if (!isMultiDropField && placedFields.find(f => f.id === fieldId)) {
         showToast('Field already placed on template', 'error');
         return;
       }
 
-      const fieldInfo = AVAILABLE_FIELDS.find(f => f.id === fieldId);
+      // Generate unique instance ID for multi-drop fields
+      let instanceId = fieldId;
+      if (isMultiDropField) {
+        const existingCount = placedFields.filter(f => f.id.startsWith(fieldId)).length;
+        instanceId = existingCount > 0 ? `${fieldId}_${existingCount + 1}` : fieldId;
+      }
+
       setPlacedFields([...placedFields, {
-        id: fieldId,
+        id: instanceId,
+        baseId: fieldId, // Store original field ID for data mapping
         label: fieldInfo.label,
         x,
         y,
         fontSize: 12,
         fontWeight: 'normal',
-        align: 'center'
+        align: fieldInfo.defaultAlign || 'center'
       }]);
     }
   };
@@ -740,7 +755,10 @@ const ConfigurationsPage = ({ currentUser }) => {
   };
 
   const selectedFieldData = placedFields.find(f => f.id === selectedField);
-  const unusedFields = AVAILABLE_FIELDS.filter(f => !placedFields.find(p => p.id === f.id));
+  // Keep multi-drop fields always available, filter out others that are already placed
+  const unusedFields = AVAILABLE_FIELDS.filter(f =>
+    MULTI_DROP_FIELDS.includes(f.id) || !placedFields.find(p => p.id === f.id || p.baseId === f.id)
+  );
 
   return (
     <div className="p-3">

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { X, Printer } from 'lucide-react';
+import { getInvoiceTemplateConfig } from '../../services/settingsService';
 
 const STORAGE_KEY = 'invoice_template_config';
 
@@ -7,28 +8,49 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
   const printRef = useRef(null);
   const [config, setConfig] = useState(null);
 
-  // Load template configuration
+  // Load template configuration from database
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    const loadConfig = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        // Set defaults for global font settings
-        if (!parsed.globalFontFamily) {
-          parsed.globalFontFamily = "'Courier New', Courier, monospace";
+        const dbConfig = await getInvoiceTemplateConfig();
+        if (dbConfig && dbConfig.fields && dbConfig.fields.length > 0) {
+          setConfig(dbConfig);
+          return;
         }
-        setConfig(parsed);
       } catch (e) {
-        console.error('Error loading template config:', e);
+        console.error('Error loading template config from database:', e);
       }
-    }
+
+      // Fallback to localStorage
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (!parsed.globalFontFamily) {
+            parsed.globalFontFamily = "'Courier New', Courier, monospace";
+          }
+          setConfig(parsed);
+        } catch (e) {
+          console.error('Error loading template config from localStorage:', e);
+        }
+      }
+    };
+    loadConfig();
   }, []);
 
-  // Build collections by date map
+  // Build collections by date map - group by date with grade1 and grade2
   const collectionsByDate = {};
   if (invoice && collections.length > 0) {
     collections.forEach(col => {
-      collectionsByDate[col.collectionDate] = col;
+      const date = col.collectionDate;
+      if (!collectionsByDate[date]) {
+        collectionsByDate[date] = { grade1: 0, grade2: 0 };
+      }
+      if (col.grade === 'GRADE_1') {
+        collectionsByDate[date].grade1 = parseFloat(col.weightKg || 0);
+      } else {
+        collectionsByDate[date].grade2 = parseFloat(col.weightKg || 0);
+      }
     });
   }
 
@@ -44,7 +66,7 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
     const col = collectionsByDate[dateStr];
     if (!col) return '-';
     const total = (col.grade1 || 0) + (col.grade2 || 0);
-    return total > 0 ? total.toFixed(0) : '-';
+    return total > 0 ? Math.round(total).toString() : '-';
   };
 
   // Map invoice data to field values
@@ -65,9 +87,9 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
       customerNameSinhala: invoice.customerNameSinhala || '',
       month: invoice.month ? getMonthName(invoice.month) : '',
       year: invoice.year?.toString() || '',
-      grade1Kg: formatNumber(invoice.grade1Kg),
-      grade2Kg: formatNumber(invoice.grade2Kg),
-      totalKg: formatNumber(invoice.totalKg),
+      grade1Kg: formatKg(invoice.grade1Kg),
+      grade2Kg: formatKg(invoice.grade2Kg),
+      totalKg: formatKg(invoice.totalKg),
       supplyDeductionKg: formatKg(invoice.supplyDeductionKg),
       supplyDeductionPercent: invoice.supplyDeductionPercentage ? parseFloat(invoice.supplyDeductionPercentage).toFixed(1) : '',
       payableKg: formatKg(invoice.payableKg),
@@ -247,6 +269,8 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
                   default: return 'none'; // left
                 }
               };
+              // Use baseId for multi-drop fields (like month_2, year_2)
+              const lookupId = field.baseId || field.id;
               return (
                 <div
                   key={field.id}
@@ -261,7 +285,7 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
                     transform: getTransform()
                   }}
                 >
-                  {getFieldValue(field.id)}
+                  {getFieldValue(lookupId)}
                 </div>
               );
             })}

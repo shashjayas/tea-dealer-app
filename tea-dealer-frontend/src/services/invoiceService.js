@@ -57,9 +57,14 @@ export const deleteInvoice = async (id) => {
   });
 };
 
-// PDF Download
+// PDF Download - use dynamic hostname for network access
+const getApiBaseUrl = () => {
+  const host = window.location.hostname;
+  return `http://${host}:8080/api`;
+};
+
 export const downloadInvoicePdf = async (invoiceId, filename) => {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+  const API_BASE_URL = getApiBaseUrl();
   const token = localStorage.getItem('token');
 
   const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/pdf`, {
@@ -69,10 +74,22 @@ export const downloadInvoicePdf = async (invoiceId, filename) => {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to download invoice PDF');
+    // Try to get error message from response
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to download invoice PDF');
+    }
+    throw new Error(`Failed to download invoice PDF: ${response.status} ${response.statusText}`);
   }
 
   const blob = await response.blob();
+
+  // Verify we got a PDF
+  if (blob.type && !blob.type.includes('pdf')) {
+    throw new Error('Server returned invalid response (not a PDF)');
+  }
+
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -84,7 +101,7 @@ export const downloadInvoicePdf = async (invoiceId, filename) => {
 };
 
 export const downloadInvoicePdfByPeriod = async (customerId, year, month, filename) => {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+  const API_BASE_URL = getApiBaseUrl();
   const token = localStorage.getItem('token');
 
   const response = await fetch(`${API_BASE_URL}/invoices/customer/${customerId}/period/${year}/${month}/pdf`, {
@@ -94,10 +111,22 @@ export const downloadInvoicePdfByPeriod = async (customerId, year, month, filena
   });
 
   if (!response.ok) {
-    throw new Error('Failed to download invoice PDF');
+    // Try to get error message from response
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to download invoice PDF');
+    }
+    throw new Error(`Failed to download invoice PDF: ${response.status} ${response.statusText}`);
   }
 
   const blob = await response.blob();
+
+  // Verify we got a PDF
+  if (blob.type && !blob.type.includes('pdf')) {
+    throw new Error('Server returned invalid response (not a PDF)');
+  }
+
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

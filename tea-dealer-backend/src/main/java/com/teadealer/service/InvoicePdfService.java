@@ -126,7 +126,9 @@ public class InvoicePdfService {
 
         for (Map<String, Object> field : fields) {
             String fieldId = (String) field.get("id");
-            String value = fieldValues.get(fieldId);
+            // Use baseId if available (for multi-drop fields like month_2, year_2)
+            String lookupId = field.containsKey("baseId") ? (String) field.get("baseId") : fieldId;
+            String value = fieldValues.get(lookupId);
 
             if (value == null || value.isEmpty()) continue;
 
@@ -230,7 +232,9 @@ public class InvoicePdfService {
 
         for (Map<String, Object> field : fields) {
             String fieldId = (String) field.get("id");
-            String value = fieldValues.get(fieldId);
+            // Use baseId if available (for multi-drop fields like month_2, year_2)
+            String lookupId = field.containsKey("baseId") ? (String) field.get("baseId") : fieldId;
+            String value = fieldValues.get(lookupId);
 
             if (value == null || value.isEmpty()) continue;
 
@@ -366,14 +370,15 @@ public class InvoicePdfService {
     }
 
     private String formatKg(BigDecimal kg) {
-        if (kg == null) return "0.00";
-        return kg.setScale(2, RoundingMode.HALF_UP).toString();
+        if (kg == null) return "0";
+        return kg.setScale(0, RoundingMode.HALF_UP).toString();
     }
 
     private List<Collection> getCollectionsForInvoice(Invoice invoice) {
         LocalDate startDate = LocalDate.of(invoice.getYear(), invoice.getMonth(), 1);
         LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
-        return collectionService.getCollectionsByBookNumberAndDateRange(
-                invoice.getBookNumber(), startDate, endDate);
+        // Use customerId for more reliable matching
+        return collectionService.getCollectionsByCustomerIdAndDateRange(
+                invoice.getCustomer().getId(), startDate, endDate);
     }
 }
