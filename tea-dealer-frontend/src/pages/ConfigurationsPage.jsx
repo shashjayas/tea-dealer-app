@@ -36,7 +36,9 @@ import {
   savePageVisibilitySettings,
   getDeductionRoundingMode,
   saveDeductionRoundingMode,
-  DEDUCTION_ROUNDING_MODES
+  DEDUCTION_ROUNDING_MODES,
+  getSpecialNotes,
+  saveSpecialNotes
 } from '../services/settingsService';
 import {
   getUsers,
@@ -73,6 +75,10 @@ const AVAILABLE_FIELDS = [
   { id: 'totalKg', label: 'Total Kg', sampleValue: '226', defaultAlign: 'right' },
   { id: 'supplyDeductionKg', label: 'Supply Deduction Kg', sampleValue: '11', defaultAlign: 'right' },
   { id: 'supplyDeductionPercent', label: 'Supply Deduction %', sampleValue: '5.0', defaultAlign: 'right' },
+  { id: 'grade1DeductionKg', label: 'G1 Deduction Kg', sampleValue: '8', defaultAlign: 'right' },
+  { id: 'grade2DeductionKg', label: 'G2 Deduction Kg', sampleValue: '4', defaultAlign: 'right' },
+  { id: 'grade1NetKg', label: 'G1 Net Kg', sampleValue: '143', defaultAlign: 'right' },
+  { id: 'grade2NetKg', label: 'G2 Net Kg', sampleValue: '71', defaultAlign: 'right' },
   { id: 'payableKg', label: 'Payable Kg', sampleValue: '214', defaultAlign: 'right' },
   { id: 'grade1Rate', label: 'Grade 1 Rate', sampleValue: '120.00', defaultAlign: 'right' },
   { id: 'grade2Rate', label: 'Grade 2 Rate', sampleValue: '100.00', defaultAlign: 'right' },
@@ -91,6 +97,8 @@ const AVAILABLE_FIELDS = [
   { id: 'otherDeductions', label: 'Other Deductions', sampleValue: '200.00', defaultAlign: 'right' },
   { id: 'arrears', label: 'Arrears (Last Month)', sampleValue: '0.00', defaultAlign: 'right' },
   { id: 'agrochemicals', label: 'Agrochemicals', sampleValue: '0.00', defaultAlign: 'right' },
+  { id: 'specialNote1', label: 'Special Note 1', sampleValue: 'Special announcement here' },
+  { id: 'specialNote2', label: 'Special Note 2', sampleValue: 'Another note here' },
 ];
 
 const ConfigurationsPage = ({ currentUser }) => {
@@ -151,6 +159,12 @@ const ConfigurationsPage = ({ currentUser }) => {
   // Invoice PDF Settings State
   const [invoiceIncludeGraphics, setInvoiceIncludeGraphics] = useState(true);
   const [invoicePageSize, setInvoicePageSize] = useState(PAGE_SIZE_OPTIONS.A5);
+
+  // Special Notes State
+  const [specialNote1Enabled, setSpecialNote1Enabled] = useState(false);
+  const [specialNote1Text, setSpecialNote1Text] = useState('');
+  const [specialNote2Enabled, setSpecialNote2Enabled] = useState(false);
+  const [specialNote2Text, setSpecialNote2Text] = useState('');
 
   // App Settings State (Page Visibility)
   const [pageVisibility, setPageVisibility] = useState({
@@ -501,6 +515,21 @@ const ConfigurationsPage = ({ currentUser }) => {
     }
   };
 
+  const saveSpecialNotesSettings = async () => {
+    try {
+      await saveSpecialNotes({
+        note1Enabled: specialNote1Enabled,
+        note1Text: specialNote1Text,
+        note2Enabled: specialNote2Enabled,
+        note2Text: specialNote2Text,
+      });
+      showToast('Special notes saved successfully', 'success');
+    } catch (error) {
+      console.error('Error saving special notes:', error);
+      showToast('Error saving special notes', 'error');
+    }
+  };
+
   const saveAppSettings = async () => {
     try {
       await savePageVisibilitySettings(pageVisibility);
@@ -550,6 +579,17 @@ const ConfigurationsPage = ({ currentUser }) => {
             console.error('Error loading config from localStorage:', err);
           }
         }
+      }
+
+      // Load special notes
+      try {
+        const notes = await getSpecialNotes();
+        setSpecialNote1Enabled(notes.note1Enabled);
+        setSpecialNote1Text(notes.note1Text);
+        setSpecialNote2Enabled(notes.note2Enabled);
+        setSpecialNote2Text(notes.note2Text);
+      } catch (e) {
+        console.error('Error loading special notes:', e);
       }
     };
     loadTemplateConfig();
@@ -1192,6 +1232,73 @@ const ConfigurationsPage = ({ currentUser }) => {
                 >
                   <Save className="w-3.5 h-3.5" />
                   Save PDF Settings
+                </button>
+              </div>
+            </div>
+
+            {/* Special Notes Settings */}
+            <div className="mt-4 border border-gray-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-gray-800 mb-3">Special Notes</h3>
+              <p className="text-xs text-gray-500 mb-4">Add special notes to appear on invoices. Enable a note and enter the message. Drag the Special Note fields onto the template to position them.</p>
+
+              <div className="space-y-4">
+                {/* Special Note 1 */}
+                <div className="p-3 border border-gray-100 rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-3 mb-2">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={specialNote1Enabled}
+                        onChange={(e) => setSpecialNote1Enabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                    <span className="text-sm font-medium text-gray-700">Special Note 1</span>
+                  </div>
+                  {specialNote1Enabled && (
+                    <textarea
+                      value={specialNote1Text}
+                      onChange={(e) => setSpecialNote1Text(e.target.value)}
+                      placeholder="Enter special note message..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      rows={2}
+                    />
+                  )}
+                </div>
+
+                {/* Special Note 2 */}
+                <div className="p-3 border border-gray-100 rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-3 mb-2">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={specialNote2Enabled}
+                        onChange={(e) => setSpecialNote2Enabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                    <span className="text-sm font-medium text-gray-700">Special Note 2</span>
+                  </div>
+                  {specialNote2Enabled && (
+                    <textarea
+                      value={specialNote2Text}
+                      onChange={(e) => setSpecialNote2Text(e.target.value)}
+                      placeholder="Enter special note message..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      rows={2}
+                    />
+                  )}
+                </div>
+
+                {/* Save Special Notes Button */}
+                <button
+                  onClick={saveSpecialNotesSettings}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Save Special Notes
                 </button>
               </div>
             </div>

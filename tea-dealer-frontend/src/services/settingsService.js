@@ -70,6 +70,11 @@ export const SETTING_KEYS = {
   DEDUCTION_ROUNDING_MODE: 'deduction_rounding_mode',
   // Language preference
   LANGUAGE: 'language',
+  // Special notes for invoices
+  SPECIAL_NOTE_1_ENABLED: 'special_note_1_enabled',
+  SPECIAL_NOTE_1_TEXT: 'special_note_1_text',
+  SPECIAL_NOTE_2_ENABLED: 'special_note_2_enabled',
+  SPECIAL_NOTE_2_TEXT: 'special_note_2_text',
 };
 
 // Deduction rounding mode options
@@ -271,4 +276,29 @@ export const getLanguage = async () => {
 
 export const saveLanguage = async (language) => {
   return await saveSetting(SETTING_KEYS.LANGUAGE, language || LANGUAGES.ENGLISH);
+};
+
+// Special notes helpers
+export const getSpecialNotes = async () => {
+  const [note1Enabled, note1Text, note2Enabled, note2Text] = await Promise.all([
+    getSettingValue(SETTING_KEYS.SPECIAL_NOTE_1_ENABLED),
+    getSettingValue(SETTING_KEYS.SPECIAL_NOTE_1_TEXT),
+    getSettingValue(SETTING_KEYS.SPECIAL_NOTE_2_ENABLED),
+    getSettingValue(SETTING_KEYS.SPECIAL_NOTE_2_TEXT),
+  ]);
+  return {
+    note1Enabled: note1Enabled === 'true',
+    note1Text: note1Text || '',
+    note2Enabled: note2Enabled === 'true',
+    note2Text: note2Text || '',
+  };
+};
+
+export const saveSpecialNotes = async (notes) => {
+  await Promise.all([
+    saveSetting(SETTING_KEYS.SPECIAL_NOTE_1_ENABLED, notes.note1Enabled ? 'true' : 'false'),
+    saveSetting(SETTING_KEYS.SPECIAL_NOTE_1_TEXT, notes.note1Text || ''),
+    saveSetting(SETTING_KEYS.SPECIAL_NOTE_2_ENABLED, notes.note2Enabled ? 'true' : 'false'),
+    saveSetting(SETTING_KEYS.SPECIAL_NOTE_2_TEXT, notes.note2Text || ''),
+  ]);
 };
