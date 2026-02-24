@@ -34,6 +34,10 @@ public class InvoicePdfService {
     private static final String SETTING_KEY_TEMPLATE_SIZE = "invoice_template_size";
     private static final String SETTING_KEY_TEMPLATE_FONT_SIZE = "invoice_template_font_size";
     private static final String SETTING_KEY_TEMPLATE_FONT_FAMILY = "invoice_template_font_family";
+    private static final String SETTING_KEY_SPECIAL_NOTE_1_ENABLED = "special_note_1_enabled";
+    private static final String SETTING_KEY_SPECIAL_NOTE_1_TEXT = "special_note_1_text";
+    private static final String SETTING_KEY_SPECIAL_NOTE_2_ENABLED = "special_note_2_enabled";
+    private static final String SETTING_KEY_SPECIAL_NOTE_2_TEXT = "special_note_2_text";
 
     // Months array
     private static final String[] MONTHS = {"January", "February", "March", "April", "May", "June",
@@ -296,6 +300,23 @@ public class InvoicePdfService {
         values.put("supplyDeductionKg", formatKg(invoice.getSupplyDeductionKg()));
         values.put("supplyDeductionPercent", invoice.getSupplyDeductionPercentage() != null ?
                 invoice.getSupplyDeductionPercentage().toString() : "0");
+
+        // Grade-specific deduction and net kg values
+        BigDecimal grade1Kg = invoice.getGrade1Kg() != null ? invoice.getGrade1Kg() : BigDecimal.ZERO;
+        BigDecimal grade2Kg = invoice.getGrade2Kg() != null ? invoice.getGrade2Kg() : BigDecimal.ZERO;
+        BigDecimal deductionPercent = invoice.getSupplyDeductionPercentage() != null ?
+                invoice.getSupplyDeductionPercentage() : BigDecimal.ZERO;
+
+        BigDecimal grade1Deduction = grade1Kg.multiply(deductionPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal grade2Deduction = grade2Kg.multiply(deductionPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal grade1NetKg = grade1Kg.subtract(grade1Deduction);
+        BigDecimal grade2NetKg = grade2Kg.subtract(grade2Deduction);
+
+        values.put("grade1DeductionKg", formatKg(grade1Deduction));
+        values.put("grade2DeductionKg", formatKg(grade2Deduction));
+        values.put("grade1NetKg", formatKg(grade1NetKg));
+        values.put("grade2NetKg", formatKg(grade2NetKg));
+
         values.put("payableKg", formatKg(invoice.getPayableKg()));
 
         // Rates
@@ -339,6 +360,15 @@ public class InvoicePdfService {
                 values.put(fieldId, "-");
             }
         }
+
+        // Special notes
+        String note1Enabled = appSettingsService.getSettingValue(SETTING_KEY_SPECIAL_NOTE_1_ENABLED);
+        String note1Text = appSettingsService.getSettingValue(SETTING_KEY_SPECIAL_NOTE_1_TEXT);
+        String note2Enabled = appSettingsService.getSettingValue(SETTING_KEY_SPECIAL_NOTE_2_ENABLED);
+        String note2Text = appSettingsService.getSettingValue(SETTING_KEY_SPECIAL_NOTE_2_TEXT);
+
+        values.put("specialNote1", "true".equalsIgnoreCase(note1Enabled) && note1Text != null ? note1Text : "");
+        values.put("specialNote2", "true".equalsIgnoreCase(note2Enabled) && note2Text != null ? note2Text : "");
 
         return values;
     }

@@ -1,38 +1,45 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { X, Printer } from 'lucide-react';
-import { getInvoiceTemplateConfig } from '../../services/settingsService';
+import { getInvoiceTemplateConfig, getSpecialNotes } from '../../services/settingsService';
 
 const STORAGE_KEY = 'invoice_template_config';
 
 const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
   const printRef = useRef(null);
   const [config, setConfig] = useState(null);
+  const [specialNotes, setSpecialNotes] = useState({ note1Text: '', note2Text: '', note1Enabled: false, note2Enabled: false });
 
-  // Load template configuration from database
+  // Load template configuration and special notes from database
   useEffect(() => {
     const loadConfig = async () => {
       try {
         const dbConfig = await getInvoiceTemplateConfig();
         if (dbConfig && dbConfig.fields && dbConfig.fields.length > 0) {
           setConfig(dbConfig);
-          return;
         }
       } catch (e) {
         console.error('Error loading template config from database:', e);
+        // Fallback to localStorage
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (!parsed.globalFontFamily) {
+              parsed.globalFontFamily = "'Courier New', Courier, monospace";
+            }
+            setConfig(parsed);
+          } catch (err) {
+            console.error('Error loading template config from localStorage:', err);
+          }
+        }
       }
 
-      // Fallback to localStorage
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (!parsed.globalFontFamily) {
-            parsed.globalFontFamily = "'Courier New', Courier, monospace";
-          }
-          setConfig(parsed);
-        } catch (e) {
-          console.error('Error loading template config from localStorage:', e);
-        }
+      // Load special notes
+      try {
+        const notes = await getSpecialNotes();
+        setSpecialNotes(notes);
+      } catch (e) {
+        console.error('Error loading special notes:', e);
       }
     };
     loadConfig();
@@ -69,6 +76,24 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
     return total > 0 ? Math.round(total).toString() : '-';
   };
 
+  // Calculate grade-specific deduction
+  const calculateGradeDeduction = (gradeKg, deductionPercent) => {
+    if (!gradeKg || !deductionPercent) return 0;
+    const kg = parseFloat(gradeKg);
+    const percent = parseFloat(deductionPercent);
+    if (isNaN(kg) || isNaN(percent)) return 0;
+    return kg * percent / 100;
+  };
+
+  // Calculate grade-specific net kg (after deduction)
+  const calculateGradeNetKg = (gradeKg, deductionPercent) => {
+    if (!gradeKg) return 0;
+    const kg = parseFloat(gradeKg);
+    if (isNaN(kg)) return 0;
+    const deduction = calculateGradeDeduction(gradeKg, deductionPercent);
+    return kg - deduction;
+  };
+
   // Map invoice data to field values
   const getFieldValue = (fieldId) => {
     if (!invoice) return '';
@@ -92,6 +117,10 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
       totalKg: formatKg(invoice.totalKg),
       supplyDeductionKg: formatKg(invoice.supplyDeductionKg),
       supplyDeductionPercent: invoice.supplyDeductionPercentage ? parseFloat(invoice.supplyDeductionPercentage).toFixed(1) : '',
+      grade1DeductionKg: formatKg(calculateGradeDeduction(invoice.grade1Kg, invoice.supplyDeductionPercentage)),
+      grade2DeductionKg: formatKg(calculateGradeDeduction(invoice.grade2Kg, invoice.supplyDeductionPercentage)),
+      grade1NetKg: formatKg(calculateGradeNetKg(invoice.grade1Kg, invoice.supplyDeductionPercentage)),
+      grade2NetKg: formatKg(calculateGradeNetKg(invoice.grade2Kg, invoice.supplyDeductionPercentage)),
       payableKg: formatKg(invoice.payableKg),
       grade1Rate: formatNumber(invoice.grade1Rate),
       grade2Rate: formatNumber(invoice.grade2Rate),
@@ -110,6 +139,8 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
       otherDeductions: formatNumber(invoice.otherDeductions),
       arrears: formatNumber(invoice.lastMonthArrears),
       agrochemicals: formatNumber(invoice.agrochemicalsAmount),
+      specialNote1: specialNotes.note1Enabled ? specialNotes.note1Text : '',
+      specialNote2: specialNotes.note2Enabled ? specialNotes.note2Text : '',
     };
 
     return fieldMap[fieldId] || '';
