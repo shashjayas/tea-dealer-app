@@ -6,4 +6,5 @@ Thumbs.db
 
 # IDEs
 .vscode/
-.idea/.claude/settings.local.json
+.idea/
+.claude/settings.local.json
