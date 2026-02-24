@@ -60,4 +60,8 @@ public class CollectionService {
     public List<Collection> getCollectionsByBookNumberAndDateRange(String bookNumber, LocalDate startDate, LocalDate endDate) {
         return collectionRepository.findByBookNumberAndCollectionDateBetween(bookNumber, startDate, endDate);
     }
+
+    public List<Collection> getCollectionsByCustomerIdAndDateRange(Long customerId, LocalDate startDate, LocalDate endDate) {
+        return collectionRepository.findByCustomerIdAndCollectionDateBetween(customerId, startDate, endDate);
+    }
 }

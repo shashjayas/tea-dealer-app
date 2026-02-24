@@ -29,7 +29,7 @@ const DashboardPage = () => {
         });
 
         setTodayCollection({
-          weight: totalWeight.toFixed(2),
+          weight: Math.round(totalWeight),
           count: uniqueCustomers.size
         });
       } catch (error) {

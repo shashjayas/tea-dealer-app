@@ -347,7 +347,7 @@ const InvoicesPage = () => {
       showToast(`Invoice downloaded for ${summary.customer.growerNameEnglish}`, 'success');
     } catch (error) {
       console.error('Error downloading invoice:', error);
-      showToast('Error downloading invoice PDF', 'error');
+      showToast(error.message || 'Error downloading invoice PDF', 'error');
     }
   };
 
