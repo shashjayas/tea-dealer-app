@@ -95,9 +95,12 @@ public class InvoicePdfService {
         // Font size
         int fontSize = fontSizeStr != null ? Integer.parseInt(fontSizeStr) : 12;
 
-        // Get page size setting
+        // Get page size setting - auto-rotate to landscape if template image is wider than tall
         String pageSizeSetting = appSettingsService.getSettingValue(SETTING_KEY_PAGE_SIZE);
         Rectangle pageSize = getPageSize(pageSizeSetting);
+        if (templateWidth > templateHeight) {
+            pageSize = pageSize.rotate();
+        }
 
         // Prepare field values
         Map<String, String> fieldValues = prepareFieldValues(invoice);
@@ -201,9 +204,12 @@ public class InvoicePdfService {
         // Font size
         int fontSize = fontSizeStr != null ? Integer.parseInt(fontSizeStr) : 12;
 
-        // Get page size setting
+        // Get page size setting - auto-rotate to landscape if template is wider than tall
         String pageSizeSetting = appSettingsService.getSettingValue(SETTING_KEY_PAGE_SIZE);
         Rectangle pageSize = getPageSize(pageSizeSetting);
+        if (templateWidth > templateHeight) {
+            pageSize = pageSize.rotate();
+        }
 
         // Prepare field values
         Map<String, String> fieldValues = prepareFieldValues(invoice);
