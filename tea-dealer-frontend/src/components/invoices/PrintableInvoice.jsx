@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { X, Printer } from 'lucide-react';
-import { getInvoiceTemplateConfig, getSpecialNotes } from '../../services/settingsService';
+import { getInvoiceTemplateConfig, getSpecialNotes, getDeductionRoundingMode, DEDUCTION_ROUNDING_MODES } from '../../services/settingsService';
 
 const STORAGE_KEY = 'invoice_template_config';
 
@@ -8,6 +8,7 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
   const printRef = useRef(null);
   const [config, setConfig] = useState(null);
   const [specialNotes, setSpecialNotes] = useState({ note1Text: '', note2Text: '', note1Enabled: false, note2Enabled: false });
+  const [roundingMode, setRoundingMode] = useState(DEDUCTION_ROUNDING_MODES.HALF_UP);
 
   // Load template configuration and special notes from database
   useEffect(() => {
@@ -40,6 +41,14 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
         setSpecialNotes(notes);
       } catch (e) {
         console.error('Error loading special notes:', e);
+      }
+
+      // Load deduction rounding mode
+      try {
+        const mode = await getDeductionRoundingMode();
+        setRoundingMode(mode);
+      } catch (e) {
+        console.error('Error loading deduction rounding mode:', e);
       }
     };
     loadConfig();
@@ -76,21 +85,20 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
     return total > 0 ? Math.round(total).toString() : '-';
   };
 
-  // Calculate grade-specific deduction
-  const calculateGradeDeduction = (gradeKg, deductionPercent) => {
-    if (!gradeKg || !deductionPercent) return 0;
-    const kg = parseFloat(gradeKg);
-    const percent = parseFloat(deductionPercent);
-    if (isNaN(kg) || isNaN(percent)) return 0;
-    return kg * percent / 100;
+  // Calculate grade-specific deduction proportionally from the stored (already rounded) supplyDeductionKg
+  const calculateGradeDeduction = (gradeKg, totalKg, supplyDeductionKg) => {
+    const grade = parseFloat(gradeKg);
+    const total = parseFloat(totalKg);
+    const deduction = parseFloat(supplyDeductionKg);
+    if (isNaN(grade) || isNaN(total) || isNaN(deduction) || total === 0) return 0;
+    return deduction * (grade / total);
   };
 
-  // Calculate grade-specific net kg (after deduction)
-  const calculateGradeNetKg = (gradeKg, deductionPercent) => {
-    if (!gradeKg) return 0;
+  // Calculate grade-specific net kg (after proportional deduction)
+  const calculateGradeNetKg = (gradeKg, totalKg, supplyDeductionKg) => {
     const kg = parseFloat(gradeKg);
     if (isNaN(kg)) return 0;
-    const deduction = calculateGradeDeduction(gradeKg, deductionPercent);
+    const deduction = calculateGradeDeduction(gradeKg, totalKg, supplyDeductionKg);
     return kg - deduction;
   };
 
@@ -115,13 +123,13 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
       grade1Kg: formatKg(invoice.grade1Kg),
       grade2Kg: formatKg(invoice.grade2Kg),
       totalKg: formatKg(invoice.totalKg),
-      supplyDeductionKg: formatKg(invoice.supplyDeductionKg),
+      supplyDeductionKg: formatCalculatedKg(invoice.supplyDeductionKg),
       supplyDeductionPercent: invoice.supplyDeductionPercentage ? parseFloat(invoice.supplyDeductionPercentage).toFixed(1) : '',
-      grade1DeductionKg: formatKg(calculateGradeDeduction(invoice.grade1Kg, invoice.supplyDeductionPercentage)),
-      grade2DeductionKg: formatKg(calculateGradeDeduction(invoice.grade2Kg, invoice.supplyDeductionPercentage)),
-      grade1NetKg: formatKg(calculateGradeNetKg(invoice.grade1Kg, invoice.supplyDeductionPercentage)),
-      grade2NetKg: formatKg(calculateGradeNetKg(invoice.grade2Kg, invoice.supplyDeductionPercentage)),
-      payableKg: formatKg(invoice.payableKg),
+      grade1DeductionKg: formatCalculatedKg(calculateGradeDeduction(invoice.grade1Kg, invoice.totalKg, invoice.supplyDeductionKg)),
+      grade2DeductionKg: formatCalculatedKg(calculateGradeDeduction(invoice.grade2Kg, invoice.totalKg, invoice.supplyDeductionKg)),
+      grade1NetKg: formatCalculatedKg(calculateGradeNetKg(invoice.grade1Kg, invoice.totalKg, invoice.supplyDeductionKg)),
+      grade2NetKg: formatCalculatedKg(calculateGradeNetKg(invoice.grade2Kg, invoice.totalKg, invoice.supplyDeductionKg)),
+      payableKg: formatCalculatedKg(invoice.payableKg),
       grade1Rate: formatNumber(invoice.grade1Rate),
       grade2Rate: formatNumber(invoice.grade2Rate),
       grade1Amount: formatNumber(invoice.grade1Amount),
@@ -153,12 +161,30 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Format kg values - always show as integers (no decimals)
+  // Format raw collection kg values - always whole numbers
   const formatKg = (value) => {
     if (value === null || value === undefined || value === '') return '';
     const num = parseFloat(value);
     if (isNaN(num)) return '';
     return Math.round(num).toString();
+  };
+
+  // Format calculated kg values (deductions, payable kg) - respects the configured rounding mode
+  const formatCalculatedKg = (value) => {
+    if (value === null || value === undefined || value === '') return '';
+    const num = parseFloat(value);
+    if (isNaN(num)) return '';
+    switch (roundingMode) {
+      case DEDUCTION_ROUNDING_MODES.INCLUDE_DECIMALS:
+        return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      case DEDUCTION_ROUNDING_MODES.CEILING:
+        return Math.ceil(num).toString();
+      case DEDUCTION_ROUNDING_MODES.FLOOR:
+        return Math.floor(num).toString();
+      case DEDUCTION_ROUNDING_MODES.HALF_UP:
+      default:
+        return Math.round(num).toString();
+    }
   };
 
   const getMonthName = (monthNum) => {
