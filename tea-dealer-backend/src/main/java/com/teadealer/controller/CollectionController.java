@@ -60,7 +60,7 @@ public class CollectionController {
         try {
             Long customerId = Long.valueOf(collectionData.get("customerId").toString());
             LocalDate date = LocalDate.parse(collectionData.get("collectionDate").toString());
-            Double weightKg = Double.valueOf(collectionData.get("weightKg").toString());
+            long weightKg = Math.round(Double.parseDouble(collectionData.get("weightKg").toString()));
             Double ratePerKg = collectionData.get("ratePerKg") != null ?
                 Double.valueOf(collectionData.get("ratePerKg").toString()) : 180.0;
 
@@ -88,7 +88,7 @@ public class CollectionController {
             collection.setBookNumber(bookNumber);
             collection.setCollectionDate(date);
             collection.setGrade(grade);
-            collection.setWeightKg(java.math.BigDecimal.valueOf(weightKg));
+            collection.setWeightKg(java.math.BigDecimal.valueOf(weightKg).setScale(0));
             collection.setRatePerKg(java.math.BigDecimal.valueOf(ratePerKg));
 
             if (collectionData.get("notes") != null) {

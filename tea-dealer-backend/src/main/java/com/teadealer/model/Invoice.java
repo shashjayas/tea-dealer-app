@@ -33,24 +33,32 @@ public class Invoice {
     @Column(name = "month", nullable = false)
     private Integer month;
 
-    // Tea collection totals
-    @Column(name = "grade1_kg", precision = 10, scale = 2)
+    // Tea collection totals — always integers (no decimal kg inputs)
+    @Column(name = "grade1_kg", columnDefinition = "INT")
     private BigDecimal grade1Kg;
 
-    @Column(name = "grade2_kg", precision = 10, scale = 2)
+    @Column(name = "grade2_kg", columnDefinition = "INT")
     private BigDecimal grade2Kg;
 
-    @Column(name = "total_kg", precision = 10, scale = 2)
+    @Column(name = "total_kg", columnDefinition = "INT")
     private BigDecimal totalKg;
 
-    // Supply deduction (kg deducted before calculating amount)
+    // Supply deduction
     @Column(name = "supply_deduction_percentage", precision = 5, scale = 2)
     private BigDecimal supplyDeductionPercentage;
 
-    @Column(name = "supply_deduction_kg", precision = 10, scale = 2)
+    // Per-grade deduction: gradeKg × deductionPct / 100, rounded per configured mode
+    @Column(name = "grade1_deduction_kg", columnDefinition = "INT")
+    private BigDecimal grade1DeductionKg;
+
+    @Column(name = "grade2_deduction_kg", columnDefinition = "INT")
+    private BigDecimal grade2DeductionKg;
+
+    // Total supply deduction = grade1DeductionKg + grade2DeductionKg
+    @Column(name = "supply_deduction_kg", columnDefinition = "INT")
     private BigDecimal supplyDeductionKg;
 
-    @Column(name = "payable_kg", precision = 10, scale = 2)
+    @Column(name = "payable_kg", columnDefinition = "INT")
     private BigDecimal payableKg;
 
     // Rates

@@ -142,7 +142,9 @@ public class InvoiceService {
         // Store collection details
         invoice.setCollectionDetails(detailsBuilder.toString());
 
-        // Set kg totals (original collected amounts)
+        // Round kg totals to integers (collection inputs are always whole numbers)
+        grade1Kg = grade1Kg.setScale(0, RoundingMode.HALF_UP);
+        grade2Kg = grade2Kg.setScale(0, RoundingMode.HALF_UP);
         invoice.setGrade1Kg(grade1Kg);
         invoice.setGrade2Kg(grade2Kg);
         BigDecimal totalKg = grade1Kg.add(grade2Kg);
@@ -150,16 +152,27 @@ public class InvoiceService {
         // Get supply deduction percentage (default 4% if not set)
         BigDecimal supplyDeductionPercentage = monthlyRate.getSupplyDeductionPercentage() != null ?
                 monthlyRate.getSupplyDeductionPercentage() : new BigDecimal("4.00");
+        invoice.setSupplyDeductionPercentage(supplyDeductionPercentage);
 
-        // Calculate supply deduction in kg with configurable rounding
-        BigDecimal rawSupplyDeductionKg = totalKg.multiply(supplyDeductionPercentage)
-                .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-        BigDecimal supplyDeductionKg = applyDeductionRounding(rawSupplyDeductionKg);
+        // Apply deduction percentage directly to each grade using the configured rounding mode.
+        // grade deduction = gradeKg × pct / 100, rounded to integer.
+        // This is simpler and more correct than a global ratio — each grade's deduction
+        // is independent, and since kg is always an integer the net kg is also always exact.
+        BigDecimal grade1DeductionKg = applyDeductionRounding(
+                grade1Kg.multiply(supplyDeductionPercentage).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+        BigDecimal grade2DeductionKg = applyDeductionRounding(
+                grade2Kg.multiply(supplyDeductionPercentage).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
 
-        // Calculate payable kg (after deduction)
+        // Net kg per grade — exact integer subtraction, no rounding needed
+        BigDecimal grade1NetKg = grade1Kg.subtract(grade1DeductionKg);
+        BigDecimal grade2NetKg = grade2Kg.subtract(grade2DeductionKg);
+
+        // Total supply deduction and payable kg
+        BigDecimal supplyDeductionKg = grade1DeductionKg.add(grade2DeductionKg);
         BigDecimal payableKg = totalKg.subtract(supplyDeductionKg);
 
-        invoice.setSupplyDeductionPercentage(supplyDeductionPercentage);
+        invoice.setGrade1DeductionKg(grade1DeductionKg);
+        invoice.setGrade2DeductionKg(grade2DeductionKg);
         invoice.setSupplyDeductionKg(supplyDeductionKg);
         invoice.setPayableKg(payableKg);
 
@@ -169,17 +182,9 @@ public class InvoiceService {
         invoice.setGrade1Rate(grade1Rate);
         invoice.setGrade2Rate(grade2Rate);
 
-        // Calculate amounts based on payable kg (proportionally reduced from each grade)
-        // Use the actual rounded deduction to calculate the reduction ratio
-        BigDecimal reductionMultiplier = totalKg.compareTo(BigDecimal.ZERO) > 0
-                ? payableKg.divide(totalKg, 6, RoundingMode.HALF_UP)
-                : BigDecimal.ONE;
-
-        BigDecimal payableGrade1Kg = grade1Kg.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal payableGrade2Kg = grade2Kg.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
-
-        BigDecimal grade1Amount = payableGrade1Kg.multiply(grade1Rate).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal grade2Amount = payableGrade2Kg.multiply(grade2Rate).setScale(2, RoundingMode.HALF_UP);
+        // Amount = net kg × rate  (net kg is an exact integer so this always tallies with display)
+        BigDecimal grade1Amount = grade1NetKg.multiply(grade1Rate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal grade2Amount = grade2NetKg.multiply(grade2Rate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalAmount = grade1Amount.add(grade2Amount);
 
         invoice.setGrade1Amount(grade1Amount);

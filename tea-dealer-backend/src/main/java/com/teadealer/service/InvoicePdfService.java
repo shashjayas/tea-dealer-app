@@ -130,6 +130,8 @@ public class InvoicePdfService {
         PdfContentByte canvas = writer.getDirectContent();
         // Use Courier font (monospace) - better for dot matrix printers
         BaseFont baseFont = BaseFont.createFont(BaseFont.COURIER, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+        // Unicode font for Sinhala text (Iskoola Pota); null if unavailable
+        BaseFont sinhalaFont = getSinhalaFont();
 
         for (Map<String, Object> field : fields) {
             String fieldId = (String) field.get("id");
@@ -150,6 +152,10 @@ public class InvoicePdfService {
             // Get alignment
             String align = (String) field.getOrDefault("align", "left");
 
+            // Use Sinhala font for customerNameSinhala field; default font for all others
+            BaseFont activeFont = ("customerNameSinhala".equals(lookupId) && sinhalaFont != null)
+                    ? sinhalaFont : baseFont;
+
             // Calculate absolute position
             float x = (float) (xPercent / 100.0 * templateImage.getScaledWidth());
             // Y is inverted in PDF (0 is bottom)
@@ -157,7 +163,7 @@ public class InvoicePdfService {
                     templateImage.getScaledHeight() - (float) (yPercent / 100.0 * templateImage.getScaledHeight());
 
             // Adjust for alignment
-            float textWidth = baseFont.getWidthPoint(value, fieldFontSize);
+            float textWidth = activeFont.getWidthPoint(value, fieldFontSize);
             if ("center".equals(align)) {
                 x -= textWidth / 2;
             } else if ("right".equals(align)) {
@@ -166,7 +172,7 @@ public class InvoicePdfService {
 
             // Draw text
             canvas.beginText();
-            canvas.setFontAndSize(baseFont, fieldFontSize);
+            canvas.setFontAndSize(activeFont, fieldFontSize);
             canvas.setTextMatrix(x, y);
             canvas.showText(value);
             canvas.endText();
@@ -239,6 +245,8 @@ public class InvoicePdfService {
         // Add field values at configured positions (same positioning as graphics version)
         PdfContentByte canvas = writer.getDirectContent();
         BaseFont baseFont = BaseFont.createFont(BaseFont.COURIER, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+        // Unicode font for Sinhala text (Iskoola Pota); null if unavailable
+        BaseFont sinhalaFont = getSinhalaFont();
 
         for (Map<String, Object> field : fields) {
             String fieldId = (String) field.get("id");
@@ -259,6 +267,10 @@ public class InvoicePdfService {
             // Get alignment
             String align = (String) field.getOrDefault("align", "left");
 
+            // Use Sinhala font for customerNameSinhala field; default font for all others
+            BaseFont activeFont = ("customerNameSinhala".equals(lookupId) && sinhalaFont != null)
+                    ? sinhalaFont : baseFont;
+
             // Calculate absolute position (same formula as graphics version)
             float x = (float) (xPercent / 100.0 * scaledWidth);
             // Y is inverted in PDF (0 is bottom)
@@ -266,7 +278,7 @@ public class InvoicePdfService {
                     scaledHeight - (float) (yPercent / 100.0 * scaledHeight);
 
             // Adjust for alignment
-            float textWidth = baseFont.getWidthPoint(value, fieldFontSize);
+            float textWidth = activeFont.getWidthPoint(value, fieldFontSize);
             if ("center".equals(align)) {
                 x -= textWidth / 2;
             } else if ("right".equals(align)) {
@@ -275,7 +287,7 @@ public class InvoicePdfService {
 
             // Draw text
             canvas.beginText();
-            canvas.setFontAndSize(baseFont, fieldFontSize);
+            canvas.setFontAndSize(activeFont, fieldFontSize);
             canvas.setTextMatrix(x, y);
             canvas.showText(value);
             canvas.endText();
@@ -307,19 +319,16 @@ public class InvoicePdfService {
         values.put("supplyDeductionPercent", invoice.getSupplyDeductionPercentage() != null ?
                 invoice.getSupplyDeductionPercentage().toString() : "0");
 
-        // Grade-specific deduction and net kg values
+        // Per-grade deduction and net kg — read directly from stored integer values
         BigDecimal grade1Kg = invoice.getGrade1Kg() != null ? invoice.getGrade1Kg() : BigDecimal.ZERO;
         BigDecimal grade2Kg = invoice.getGrade2Kg() != null ? invoice.getGrade2Kg() : BigDecimal.ZERO;
-        BigDecimal deductionPercent = invoice.getSupplyDeductionPercentage() != null ?
-                invoice.getSupplyDeductionPercentage() : BigDecimal.ZERO;
+        BigDecimal grade1Ded = invoice.getGrade1DeductionKg() != null ? invoice.getGrade1DeductionKg() : BigDecimal.ZERO;
+        BigDecimal grade2Ded = invoice.getGrade2DeductionKg() != null ? invoice.getGrade2DeductionKg() : BigDecimal.ZERO;
+        BigDecimal grade1NetKg = grade1Kg.subtract(grade1Ded);
+        BigDecimal grade2NetKg = grade2Kg.subtract(grade2Ded);
 
-        BigDecimal grade1Deduction = grade1Kg.multiply(deductionPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal grade2Deduction = grade2Kg.multiply(deductionPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal grade1NetKg = grade1Kg.subtract(grade1Deduction);
-        BigDecimal grade2NetKg = grade2Kg.subtract(grade2Deduction);
-
-        values.put("grade1DeductionKg", formatKg(grade1Deduction));
-        values.put("grade2DeductionKg", formatKg(grade2Deduction));
+        values.put("grade1DeductionKg", grade1Ded.toPlainString());
+        values.put("grade2DeductionKg", grade2Ded.toPlainString());
         values.put("grade1NetKg", formatKg(grade1NetKg));
         values.put("grade2NetKg", formatKg(grade2NetKg));
 
@@ -377,6 +386,26 @@ public class InvoicePdfService {
         values.put("specialNote2", "true".equalsIgnoreCase(note2Enabled) && note2Text != null ? note2Text : "");
 
         return values;
+    }
+
+    /**
+     * Load a Unicode font that supports Sinhala characters.
+     * Tries Iskoola Pota (standard Windows Sinhala font).
+     * Returns null if no Sinhala font is found — caller should fall back to the default font.
+     */
+    private BaseFont getSinhalaFont() {
+        String[] candidates = {
+            "C:/Windows/Fonts/iskpota.ttf",
+            "/usr/share/fonts/truetype/noto/NotoSansSinhala-Regular.ttf"
+        };
+        for (String path : candidates) {
+            try {
+                return BaseFont.createFont(path, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            } catch (Exception ignored) {
+                // Font not found at this path, try next
+            }
+        }
+        return null;
     }
 
     private Rectangle getPageSize(String setting) {

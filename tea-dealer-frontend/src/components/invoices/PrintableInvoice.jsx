@@ -85,22 +85,6 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
     return total > 0 ? Math.round(total).toString() : '-';
   };
 
-  // Calculate grade-specific deduction proportionally from the stored (already rounded) supplyDeductionKg
-  const calculateGradeDeduction = (gradeKg, totalKg, supplyDeductionKg) => {
-    const grade = parseFloat(gradeKg);
-    const total = parseFloat(totalKg);
-    const deduction = parseFloat(supplyDeductionKg);
-    if (isNaN(grade) || isNaN(total) || isNaN(deduction) || total === 0) return 0;
-    return deduction * (grade / total);
-  };
-
-  // Calculate grade-specific net kg (after proportional deduction)
-  const calculateGradeNetKg = (gradeKg, totalKg, supplyDeductionKg) => {
-    const kg = parseFloat(gradeKg);
-    if (isNaN(kg)) return 0;
-    const deduction = calculateGradeDeduction(gradeKg, totalKg, supplyDeductionKg);
-    return kg - deduction;
-  };
 
   // Map invoice data to field values
   const getFieldValue = (fieldId) => {
@@ -125,10 +109,10 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
       totalKg: formatKg(invoice.totalKg),
       supplyDeductionKg: formatCalculatedKg(invoice.supplyDeductionKg),
       supplyDeductionPercent: invoice.supplyDeductionPercentage ? parseFloat(invoice.supplyDeductionPercentage).toFixed(1) : '',
-      grade1DeductionKg: formatCalculatedKg(calculateGradeDeduction(invoice.grade1Kg, invoice.totalKg, invoice.supplyDeductionKg)),
-      grade2DeductionKg: formatCalculatedKg(calculateGradeDeduction(invoice.grade2Kg, invoice.totalKg, invoice.supplyDeductionKg)),
-      grade1NetKg: formatCalculatedKg(calculateGradeNetKg(invoice.grade1Kg, invoice.totalKg, invoice.supplyDeductionKg)),
-      grade2NetKg: formatCalculatedKg(calculateGradeNetKg(invoice.grade2Kg, invoice.totalKg, invoice.supplyDeductionKg)),
+      grade1DeductionKg: formatCalculatedKg(invoice.grade1DeductionKg),
+      grade2DeductionKg: formatCalculatedKg(invoice.grade2DeductionKg),
+      grade1NetKg: formatCalculatedKg(parseFloat(invoice.grade1Kg || 0) - parseFloat(invoice.grade1DeductionKg || 0)),
+      grade2NetKg: formatCalculatedKg(parseFloat(invoice.grade2Kg || 0) - parseFloat(invoice.grade2DeductionKg || 0)),
       payableKg: formatCalculatedKg(invoice.payableKg),
       grade1Rate: formatNumber(invoice.grade1Rate),
       grade2Rate: formatNumber(invoice.grade2Rate),
