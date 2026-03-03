@@ -133,8 +133,9 @@ public class InvoicePdfService {
 
         for (Map<String, Object> field : fields) {
             String fieldId = (String) field.get("id");
-            // Use baseId if available (for multi-drop fields like month_2, year_2)
-            String lookupId = field.containsKey("baseId") ? (String) field.get("baseId") : fieldId;
+            // Support both baseId (legacy) and fieldType (current) for multi-drop fields
+            String lookupId = field.containsKey("baseId") ? (String) field.get("baseId") :
+                              field.containsKey("fieldType") ? (String) field.get("fieldType") : fieldId;
             String value = fieldValues.get(lookupId);
 
             if (value == null || value.isEmpty()) continue;
@@ -144,8 +145,10 @@ public class InvoicePdfService {
             double yPercent = ((Number) field.get("y")).doubleValue();
 
             // Get field-specific font size or use global
-            int fieldFontSize = field.containsKey("fontSize") ?
+            // Convert from CSS px to PDF points (1px = 0.75pt)
+            int fieldFontSizePx = field.containsKey("fontSize") ?
                     ((Number) field.get("fontSize")).intValue() : fontSize;
+            float fieldFontSize = fieldFontSizePx * 0.75f;
 
             // Get alignment
             String align = (String) field.getOrDefault("align", "left");
@@ -242,8 +245,9 @@ public class InvoicePdfService {
 
         for (Map<String, Object> field : fields) {
             String fieldId = (String) field.get("id");
-            // Use baseId if available (for multi-drop fields like month_2, year_2)
-            String lookupId = field.containsKey("baseId") ? (String) field.get("baseId") : fieldId;
+            // Support both baseId (legacy) and fieldType (current) for multi-drop fields
+            String lookupId = field.containsKey("baseId") ? (String) field.get("baseId") :
+                              field.containsKey("fieldType") ? (String) field.get("fieldType") : fieldId;
             String value = fieldValues.get(lookupId);
 
             if (value == null || value.isEmpty()) continue;
@@ -253,8 +257,10 @@ public class InvoicePdfService {
             double yPercent = ((Number) field.get("y")).doubleValue();
 
             // Get field-specific font size or use global
-            int fieldFontSize = field.containsKey("fontSize") ?
+            // Convert from CSS px to PDF points (1px = 0.75pt)
+            int fieldFontSizePx = field.containsKey("fontSize") ?
                     ((Number) field.get("fontSize")).intValue() : fontSize;
+            float fieldFontSize = fieldFontSizePx * 0.75f;
 
             // Get alignment
             String align = (String) field.getOrDefault("align", "left");
@@ -307,19 +313,28 @@ public class InvoicePdfService {
         values.put("supplyDeductionPercent", invoice.getSupplyDeductionPercentage() != null ?
                 invoice.getSupplyDeductionPercentage().toString() : "0");
 
-        // Grade-specific deduction and net kg values
+        // Grade-specific deduction and net kg — use proportional distribution of the
+        // already-rounded supplyDeductionKg to match the bill display and amount calculation
         BigDecimal grade1Kg = invoice.getGrade1Kg() != null ? invoice.getGrade1Kg() : BigDecimal.ZERO;
         BigDecimal grade2Kg = invoice.getGrade2Kg() != null ? invoice.getGrade2Kg() : BigDecimal.ZERO;
-        BigDecimal deductionPercent = invoice.getSupplyDeductionPercentage() != null ?
-                invoice.getSupplyDeductionPercentage() : BigDecimal.ZERO;
+        BigDecimal totalKgForDed = grade1Kg.add(grade2Kg);
+        BigDecimal supplyDedKg = invoice.getSupplyDeductionKg() != null ? invoice.getSupplyDeductionKg() : BigDecimal.ZERO;
 
-        BigDecimal grade1Deduction = grade1Kg.multiply(deductionPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal grade2Deduction = grade2Kg.multiply(deductionPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal grade1NetKg = grade1Kg.subtract(grade1Deduction);
-        BigDecimal grade2NetKg = grade2Kg.subtract(grade2Deduction);
+        BigDecimal grade1Deduction = BigDecimal.ZERO;
+        BigDecimal grade2Deduction = BigDecimal.ZERO;
+        if (totalKgForDed.compareTo(BigDecimal.ZERO) > 0) {
+            grade1Deduction = supplyDedKg.multiply(grade1Kg).divide(totalKgForDed, 4, RoundingMode.HALF_UP);
+            grade2Deduction = supplyDedKg.multiply(grade2Kg).divide(totalKgForDed, 4, RoundingMode.HALF_UP);
+        }
+        BigDecimal grade1KgRounded = grade1Kg.setScale(0, RoundingMode.HALF_UP);
+        BigDecimal grade2KgRounded = grade2Kg.setScale(0, RoundingMode.HALF_UP);
+        BigDecimal grade1NetKg = grade1Kg.subtract(grade1Deduction).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal grade2NetKg = grade2Kg.subtract(grade2Deduction).setScale(0, RoundingMode.HALF_UP);
 
-        values.put("grade1DeductionKg", formatKg(grade1Deduction));
-        values.put("grade2DeductionKg", formatKg(grade2Deduction));
+        // Use arithmetic complement so displayed arithmetic always holds:
+        // grade1KgRounded - grade1DeductionDisplay = grade1NetKg (exactly)
+        values.put("grade1DeductionKg", grade1KgRounded.subtract(grade1NetKg).toPlainString());
+        values.put("grade2DeductionKg", grade2KgRounded.subtract(grade2NetKg).toPlainString());
         values.put("grade1NetKg", formatKg(grade1NetKg));
         values.put("grade2NetKg", formatKg(grade2NetKg));
 

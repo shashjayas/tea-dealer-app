@@ -33,14 +33,14 @@ public class Invoice {
     @Column(name = "month", nullable = false)
     private Integer month;
 
-    // Tea collection totals
-    @Column(name = "grade1_kg", precision = 10, scale = 2)
+    // Tea collection totals — always stored as integers (no decimal kg)
+    @Column(name = "grade1_kg", columnDefinition = "INT")
     private BigDecimal grade1Kg;
 
-    @Column(name = "grade2_kg", precision = 10, scale = 2)
+    @Column(name = "grade2_kg", columnDefinition = "INT")
     private BigDecimal grade2Kg;
 
-    @Column(name = "total_kg", precision = 10, scale = 2)
+    @Column(name = "total_kg", columnDefinition = "INT")
     private BigDecimal totalKg;
 
     // Supply deduction (kg deducted before calculating amount)

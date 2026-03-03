@@ -29,7 +29,7 @@ public class Collection {
     @Column(name = "grade", nullable = false)
     private TeaGrade grade = TeaGrade.GRADE_2;
 
-    @Column(name = "weight_kg", nullable = false, precision = 10, scale = 2)
+    @Column(name = "weight_kg", nullable = false, columnDefinition = "INT")
     private BigDecimal weightKg;
     
     @Column(name = "rate_per_kg", precision = 10, scale = 2)

@@ -76,22 +76,21 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
     return total > 0 ? Math.round(total).toString() : '-';
   };
 
-  // Calculate grade-specific deduction
-  const calculateGradeDeduction = (gradeKg, deductionPercent) => {
-    if (!gradeKg || !deductionPercent) return 0;
+  // Integer net kg after proportional deduction — matches backend setScale(0, HALF_UP)
+  const calculateGradeNetKg = (gradeKg) => {
     const kg = parseFloat(gradeKg);
-    const percent = parseFloat(deductionPercent);
-    if (isNaN(kg) || isNaN(percent)) return 0;
-    return kg * percent / 100;
+    const totalKg = parseFloat(invoice?.totalKg || 0) || (parseFloat(invoice?.grade1Kg || 0) + parseFloat(invoice?.grade2Kg || 0));
+    const supplyDedKg = parseFloat(invoice?.supplyDeductionKg || 0);
+    if (isNaN(kg) || totalKg === 0) return 0;
+    return Math.round(kg - supplyDedKg * (kg / totalKg));
   };
 
-  // Calculate grade-specific net kg (after deduction)
-  const calculateGradeNetKg = (gradeKg, deductionPercent) => {
-    if (!gradeKg) return 0;
+  // Arithmetic complement: ensures displayed kg - deduction = netKg exactly,
+  // even at x.5 rounding boundaries where independently rounding both can diverge
+  const calculateGradeDeduction = (gradeKg) => {
     const kg = parseFloat(gradeKg);
     if (isNaN(kg)) return 0;
-    const deduction = calculateGradeDeduction(gradeKg, deductionPercent);
-    return kg - deduction;
+    return Math.round(kg) - calculateGradeNetKg(gradeKg);
   };
 
   // Map invoice data to field values
@@ -117,10 +116,10 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
       totalKg: formatKg(invoice.totalKg),
       supplyDeductionKg: formatKg(invoice.supplyDeductionKg),
       supplyDeductionPercent: invoice.supplyDeductionPercentage ? parseFloat(invoice.supplyDeductionPercentage).toFixed(1) : '',
-      grade1DeductionKg: formatKg(calculateGradeDeduction(invoice.grade1Kg, invoice.supplyDeductionPercentage)),
-      grade2DeductionKg: formatKg(calculateGradeDeduction(invoice.grade2Kg, invoice.supplyDeductionPercentage)),
-      grade1NetKg: formatKg(calculateGradeNetKg(invoice.grade1Kg, invoice.supplyDeductionPercentage)),
-      grade2NetKg: formatKg(calculateGradeNetKg(invoice.grade2Kg, invoice.supplyDeductionPercentage)),
+      grade1DeductionKg: calculateGradeDeduction(invoice.grade1Kg).toString(),
+      grade2DeductionKg: calculateGradeDeduction(invoice.grade2Kg).toString(),
+      grade1NetKg: calculateGradeNetKg(invoice.grade1Kg).toString(),
+      grade2NetKg: calculateGradeNetKg(invoice.grade2Kg).toString(),
       payableKg: formatKg(invoice.payableKg),
       grade1Rate: formatNumber(invoice.grade1Rate),
       grade2Rate: formatNumber(invoice.grade2Rate),
@@ -313,7 +312,8 @@ const PrintableInvoice = ({ isOpen, onClose, invoice, collections = [] }) => {
                     fontWeight: field.fontWeight || 'normal',
                     textAlign: field.align || 'left',
                     fontFamily: config.globalFontFamily || "'Courier New', Courier, monospace",
-                    transform: getTransform()
+                    transform: getTransform(),
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {getFieldValue(lookupId)}

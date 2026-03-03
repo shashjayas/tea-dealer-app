@@ -142,6 +142,10 @@ public class InvoiceService {
         // Store collection details
         invoice.setCollectionDetails(detailsBuilder.toString());
 
+        // Round to integers — collection inputs are always whole numbers
+        grade1Kg = grade1Kg.setScale(0, RoundingMode.HALF_UP);
+        grade2Kg = grade2Kg.setScale(0, RoundingMode.HALF_UP);
+
         // Set kg totals (original collected amounts)
         invoice.setGrade1Kg(grade1Kg);
         invoice.setGrade2Kg(grade2Kg);
@@ -169,17 +173,20 @@ public class InvoiceService {
         invoice.setGrade1Rate(grade1Rate);
         invoice.setGrade2Rate(grade2Rate);
 
-        // Calculate amounts based on payable kg (proportionally reduced from each grade)
-        // Use the actual rounded deduction to calculate the reduction ratio
-        BigDecimal reductionMultiplier = totalKg.compareTo(BigDecimal.ZERO) > 0
-                ? payableKg.divide(totalKg, 6, RoundingMode.HALF_UP)
-                : BigDecimal.ONE;
+        // Distribute the already-rounded supplyDeductionKg proportionally across each grade,
+        // then round each grade's net kg to integer — matching what is displayed in the bill.
+        BigDecimal grade1DedKg = BigDecimal.ZERO;
+        BigDecimal grade2DedKg = BigDecimal.ZERO;
+        if (totalKg.compareTo(BigDecimal.ZERO) > 0) {
+            grade1DedKg = supplyDeductionKg.multiply(grade1Kg).divide(totalKg, 4, RoundingMode.HALF_UP);
+            grade2DedKg = supplyDeductionKg.multiply(grade2Kg).divide(totalKg, 4, RoundingMode.HALF_UP);
+        }
+        BigDecimal grade1NetKg = grade1Kg.subtract(grade1DedKg).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal grade2NetKg = grade2Kg.subtract(grade2DedKg).setScale(0, RoundingMode.HALF_UP);
 
-        BigDecimal payableGrade1Kg = grade1Kg.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal payableGrade2Kg = grade2Kg.multiply(reductionMultiplier).setScale(2, RoundingMode.HALF_UP);
-
-        BigDecimal grade1Amount = payableGrade1Kg.multiply(grade1Rate).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal grade2Amount = payableGrade2Kg.multiply(grade2Rate).setScale(2, RoundingMode.HALF_UP);
+        // Calculate amounts: integer net kg × rate (tallies with displayed kg in the bill)
+        BigDecimal grade1Amount = grade1NetKg.multiply(grade1Rate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal grade2Amount = grade2NetKg.multiply(grade2Rate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalAmount = grade1Amount.add(grade2Amount);
 
         invoice.setGrade1Amount(grade1Amount);

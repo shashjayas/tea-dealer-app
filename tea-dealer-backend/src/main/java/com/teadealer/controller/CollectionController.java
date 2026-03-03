@@ -60,7 +60,7 @@ public class CollectionController {
         try {
             Long customerId = Long.valueOf(collectionData.get("customerId").toString());
             LocalDate date = LocalDate.parse(collectionData.get("collectionDate").toString());
-            Double weightKg = Double.valueOf(collectionData.get("weightKg").toString());
+            long weightKg = Math.round(Double.parseDouble(collectionData.get("weightKg").toString()));
             Double ratePerKg = collectionData.get("ratePerKg") != null ?
                 Double.valueOf(collectionData.get("ratePerKg").toString()) : 180.0;
 
