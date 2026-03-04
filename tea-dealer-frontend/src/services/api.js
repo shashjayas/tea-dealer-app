@@ -1,7 +1,6 @@
-// Use current hostname for API calls (allows access from other devices on the network)
-const API_HOST = window.location.hostname;
-const API_PORT = 8080;
-const API_BASE = `http://${API_HOST}:${API_PORT}/api`;
+// Use REACT_APP_API_URL env var when deployed (e.g. on Vercel pointing to Render backend).
+// Falls back to current hostname:8080 for local network access.
+const API_BASE = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:8080/api`;
 
 export const apiCall = async (endpoint, options = {}) => {
   try {
