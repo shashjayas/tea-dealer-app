@@ -1,10 +1,9 @@
 services:
   - type: web
     name: tea-dealer-backend
-    runtime: java
-    rootDir: tea-dealer-backend
-    buildCommand: chmod +x mvnw && ./mvnw clean package -DskipTests
-    startCommand: java -jar target/tea-dealer-backend-0.0.1-SNAPSHOT.jar
+    runtime: docker
+    dockerfilePath: tea-dealer-backend/Dockerfile
+    dockerContext: tea-dealer-backend
     envVars:
       - key: DB_URL
         sync: false
