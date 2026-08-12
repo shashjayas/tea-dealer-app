@@ -7,7 +7,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
-     
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -35,9 +34,16 @@ services:
     container_name: tea-dealer-frontend
     restart: always
     ports:
-      - "80:80"
+      - "3000:80"
     depends_on:
       - backend
+    networks:
+      - default
+      - proxy
 
 volumes:
   mysql_data:
+
+networks:
+  proxy:
+    external: true
